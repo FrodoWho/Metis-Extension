@@ -113,6 +113,9 @@
 .msr-guide-ghost .msr-guide-line {
   opacity: 0.4;
 }
+.msr-guide-ghost .msr-guide-hit {
+  pointer-events: none;
+}
 
 /* ── Horizontal guide modifier ───────────────────────────────── */
 .msr-guide.msr-guide-h {
