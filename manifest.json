@@ -3,7 +3,7 @@
   "name": "Measure",
   "version": "0.1.0",
   "description": "Inspect element dimensions and place alignment guides on any page.",
-  "permissions": ["activeTab"],
+  "permissions": ["activeTab", "storage"],
   "action": {
     "default_popup": "popup/popup.html",
     "default_icon": {
