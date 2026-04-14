@@ -23,6 +23,7 @@ const toolbar = (() => {
       const next = !state.measure;
       applyTool('measure', next);
       chrome.storage.session.set({ measure: next });
+      chrome.runtime.sendMessage({ tool: 'measure', enabled: next }).catch(() => {});
     });
 
     btnGuides = document.createElement('button');
@@ -33,6 +34,7 @@ const toolbar = (() => {
       const next = !state.guides;
       applyTool('guides', next);
       chrome.storage.session.set({ guides: next });
+      chrome.runtime.sendMessage({ tool: 'guides', enabled: next }).catch(() => {});
     });
 
     const sep1 = document.createElement('div');
@@ -44,8 +46,8 @@ const toolbar = (() => {
     btnClose.setAttribute('data-measure-extension', '');
     btnClose.textContent = '✕';
     btnClose.addEventListener('click', () => {
-      if (state.measure) { applyTool('measure', false); chrome.storage.session.set({ measure: false }); }
-      if (state.guides)  { applyTool('guides',  false); chrome.storage.session.set({ guides: false }); }
+      if (state.measure) { applyTool('measure', false); chrome.storage.session.set({ measure: false }); chrome.runtime.sendMessage({ tool: 'measure', enabled: false }).catch(() => {}); }
+      if (state.guides)  { applyTool('guides',  false); chrome.storage.session.set({ guides: false });  chrome.runtime.sendMessage({ tool: 'guides',  enabled: false }).catch(() => {}); }
     });
 
     rowMain.appendChild(btnMeasure);

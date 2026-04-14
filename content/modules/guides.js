@@ -110,6 +110,7 @@ const guides = (() => {
 
   function onMouseMove(e) {
     ensureGhost();
+    if (!ghost) return; // body not ready yet (SPA mid-navigation)
     if (direction === 'h') {
       ghost.classList.add('msr-guide-h');
       ghost.style.top = e.clientY + 'px';
