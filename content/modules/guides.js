@@ -69,7 +69,7 @@ const guides = (() => {
   }
 
   function setDirection(d) {
-    direction = d;
+    if (d === 'v' || d === 'h') direction = d;
   }
 
   return { enable, disable, setDirection };
