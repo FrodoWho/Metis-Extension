@@ -1,27 +1,35 @@
 const guides = (() => {
-  const lines = []; // guide container DOM nodes
+  const lines = [];
   let enabled = false;
   let previousCursor = '';
+  let direction = 'v'; // 'v' | 'h'
 
-  function createGuide(x) {
+  function createGuide(coord) {
     const container = document.createElement('div');
     container.setAttribute('data-measure-extension', '');
+    container.dataset.orient = direction;
     container.classList.add('msr-guide');
-    container.style.left = x + 'px';
 
-    // Visible 1px red line — not interactive
+    if (direction === 'h') {
+      container.classList.add('msr-guide-h');
+      container.style.top = coord + 'px';
+    } else {
+      container.style.left = coord + 'px';
+    }
+
     const line = document.createElement('div');
     line.classList.add('msr-guide-line');
 
-    // 8px hit zone centred on the line — clicking removes the guide
     const hit = document.createElement('div');
     hit.classList.add('msr-guide-hit');
-    hit.addEventListener('click', () => removeGuide(container));
+    hit.addEventListener('click', (e) => {
+      e.stopPropagation();
+      removeGuide(container);
+    });
 
-    // X coordinate label
     const label = document.createElement('div');
     label.classList.add('msr-guide-label');
-    label.textContent = `${Math.round(x)}px`;
+    label.textContent = `${Math.round(coord)}px`;
 
     container.appendChild(line);
     container.appendChild(hit);
@@ -38,9 +46,9 @@ const guides = (() => {
   }
 
   function onClick(e) {
-    // Skip clicks that land on any extension overlay (guide hit zones, measure overlays, etc.)
     if (e.target.closest && e.target.closest('[data-measure-extension]')) return;
-    createGuide(e.clientX);
+    const coord = direction === 'h' ? e.clientY : e.clientX;
+    createGuide(coord);
   }
 
   function enable() {
@@ -60,5 +68,9 @@ const guides = (() => {
     lines.length = 0;
   }
 
-  return { enable, disable };
+  function setDirection(d) {
+    direction = d;
+  }
+
+  return { enable, disable, setDirection };
 })();
