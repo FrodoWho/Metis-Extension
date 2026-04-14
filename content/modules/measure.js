@@ -100,6 +100,7 @@ const measure = (() => {
   /* ── Lock / unlock ──────────────────────────────────────── */
 
   function lockEl(el) {
+    sweepStaleLocks();
     const bm     = getBoxModel(el);
     const wLabel = makeLabel(`↔ ${bm.w}px`);
     const hLabel = makeLabel(`↕ ${bm.h}px`);
@@ -121,6 +122,15 @@ const measure = (() => {
     return locks.some(l => l.el === el);
   }
 
+  function sweepStaleLocks() {
+    for (let i = locks.length - 1; i >= 0; i--) {
+      if (!document.contains(locks[i].el)) {
+        Object.values(locks[i].nodes).forEach(n => n.remove());
+        locks.splice(i, 1);
+      }
+    }
+  }
+
   /* ── Event handlers ─────────────────────────────────────── */
 
   function onMouseMove(e) {
@@ -137,14 +147,17 @@ const measure = (() => {
 
   function onClick(e) {
     if (isExtEl(e.target)) return;
-    // Prevent the page's own click handlers from firing while measure is active
+    // Prevent the page's own click handlers and browser defaults (link navigation,
+    // form submission) from firing while measure is active
     e.stopPropagation();
+    e.preventDefault();
     isLocked(e.target) ? unlockEl(e.target) : lockEl(e.target);
   }
 
   /* ── Public API ─────────────────────────────────────────── */
 
   function enable() {
+    if (highlight) return; // already enabled
     highlight = createHighlight();
     document.addEventListener('mousemove', onMouseMove, true);
     document.addEventListener('click',     onClick,     true);
