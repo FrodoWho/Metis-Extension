@@ -1,5 +1,7 @@
 const guides = (() => {
   const lines = []; // guide container DOM nodes
+  let enabled = false;
+  let previousCursor = '';
 
   function createGuide(x) {
     const container = document.createElement('div');
@@ -42,12 +44,17 @@ const guides = (() => {
   }
 
   function enable() {
+    if (enabled) return;
+    enabled = true;
+    previousCursor = document.body.style.cursor;
     document.body.style.cursor = 'crosshair';
     document.addEventListener('click', onClick, true);
   }
 
   function disable() {
-    document.body.style.cursor = '';
+    if (!enabled) return;
+    enabled = false;
+    document.body.style.cursor = previousCursor;
     document.removeEventListener('click', onClick, true);
     lines.forEach(g => g.remove());
     lines.length = 0;
