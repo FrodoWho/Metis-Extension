@@ -52,7 +52,7 @@ const guides = (() => {
 
   function renderGaps() {
     // Remove all existing gap labels before re-rendering
-    document.querySelectorAll('.msr-gap-label').forEach(el => el.remove());
+    document.querySelectorAll('.msr-gap-label[data-measure-extension]').forEach(el => el.remove());
 
     // Vertical guides: gap labels centred horizontally between adjacent lines
     const vGuides = lines
@@ -145,7 +145,7 @@ const guides = (() => {
     removeGhost();
     lines.forEach(g => g.remove());
     lines.length = 0;
-    document.querySelectorAll('.msr-gap-label').forEach(el => el.remove());
+    document.querySelectorAll('.msr-gap-label[data-measure-extension]').forEach(el => el.remove());
   }
 
   function setDirection(d) {
@@ -155,7 +155,7 @@ const guides = (() => {
   function setGapVisible(v) {
     gapVisible = v;
     if (v) renderGaps();
-    else document.querySelectorAll('.msr-gap-label').forEach(el => el.remove());
+    else document.querySelectorAll('.msr-gap-label[data-measure-extension]').forEach(el => el.remove());
   }
 
   return { enable, disable, setDirection, setGapVisible };
