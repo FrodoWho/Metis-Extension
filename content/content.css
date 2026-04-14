@@ -1,0 +1,107 @@
+/* Hover highlight ring shown while hovering in measure mode */
+.msr-hover-highlight {
+  position: fixed;
+  pointer-events: none;
+  border: 2px solid rgba(99, 102, 241, 0.8);
+  background: rgba(99, 102, 241, 0.05);
+  border-radius: 2px;
+  z-index: 2147483646;
+}
+
+/* Width / height edge labels */
+.msr-edge-label {
+  position: fixed;
+  background: #111;
+  color: #fff;
+  font-family: 'SF Mono', 'Menlo', 'Consolas', monospace;
+  font-size: 10px;
+  padding: 2px 5px;
+  border-radius: 3px;
+  z-index: 2147483647;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* Box model panel */
+.msr-panel {
+  position: fixed;
+  background: #111;
+  color: #e0e0e0;
+  font-family: 'SF Mono', 'Menlo', 'Consolas', monospace;
+  font-size: 10px;
+  line-height: 1.6;
+  padding: 10px 12px;
+  border-radius: 6px;
+  z-index: 2147483647;
+  white-space: nowrap;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  pointer-events: none;
+}
+
+.msr-panel-title {
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  color: #555;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+}
+
+.msr-panel-row {
+  display: grid;
+  grid-template-columns: 36px auto;
+  gap: 0 8px;
+}
+
+.msr-panel-key { color: #6366f1; }
+
+.msr-panel-sep {
+  height: 1px;
+  background: #222;
+  margin: 5px 0;
+}
+
+/* Guide line container — zero-width, full viewport height */
+.msr-guide {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  z-index: 2147483647;
+}
+
+/* Visible 1px red line */
+.msr-guide-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 1px;
+  background: rgba(239, 68, 68, 0.8);
+  pointer-events: none;
+}
+
+/* 8px invisible hit zone centred on the 1px line */
+.msr-guide-hit {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -4px;
+  width: 8px;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+/* X coordinate label */
+.msr-guide-label {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  background: rgba(239, 68, 68, 0.9);
+  color: #fff;
+  font-family: 'SF Mono', 'Menlo', 'Consolas', monospace;
+  font-size: 9px;
+  padding: 2px 4px;
+  border-radius: 2px;
+  pointer-events: none;
+  white-space: nowrap;
+}
