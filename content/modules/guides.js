@@ -2,7 +2,7 @@ const guides = (() => {
   const lines = [];
   let enabled = false;
   let previousCursor = '';
-  let direction = 'v';
+  let direction = 'v'; // 'v' | 'h'
   let ghost = null;
 
   function createGuide(coord) {
@@ -47,7 +47,9 @@ const guides = (() => {
   }
 
   function ensureGhost() {
-    if (ghost) return;
+    if (!document.body) return;
+    if (ghost && ghost.isConnected) return;
+    ghost = null; // discard stale reference if detached from a previous document
     ghost = document.createElement('div');
     ghost.setAttribute('data-measure-extension', '');
     ghost.classList.add('msr-guide', 'msr-guide-ghost');
