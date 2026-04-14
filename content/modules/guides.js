@@ -2,7 +2,8 @@ const guides = (() => {
   const lines = [];
   let enabled = false;
   let previousCursor = '';
-  let direction = 'v'; // 'v' | 'h'
+  let direction = 'v';
+  let ghost = null;
 
   function createGuide(coord) {
     const container = document.createElement('div');
@@ -45,6 +46,36 @@ const guides = (() => {
     lines.splice(idx, 1);
   }
 
+  function ensureGhost() {
+    if (ghost) return;
+    ghost = document.createElement('div');
+    ghost.setAttribute('data-measure-extension', '');
+    ghost.classList.add('msr-guide', 'msr-guide-ghost');
+    const line = document.createElement('div');
+    line.classList.add('msr-guide-line');
+    ghost.appendChild(line);
+    document.body.appendChild(ghost);
+  }
+
+  function removeGhost() {
+    if (!ghost) return;
+    ghost.remove();
+    ghost = null;
+  }
+
+  function onMouseMove(e) {
+    ensureGhost();
+    if (direction === 'h') {
+      ghost.classList.add('msr-guide-h');
+      ghost.style.top = e.clientY + 'px';
+      ghost.style.left = '';
+    } else {
+      ghost.classList.remove('msr-guide-h');
+      ghost.style.left = e.clientX + 'px';
+      ghost.style.top = '';
+    }
+  }
+
   function onClick(e) {
     if (e.target.closest && e.target.closest('[data-measure-extension]')) return;
     const coord = direction === 'h' ? e.clientY : e.clientX;
@@ -56,6 +87,7 @@ const guides = (() => {
     enabled = true;
     previousCursor = document.body.style.cursor;
     document.body.style.cursor = 'crosshair';
+    document.addEventListener('mousemove', onMouseMove, true);
     document.addEventListener('click', onClick, true);
   }
 
@@ -63,7 +95,9 @@ const guides = (() => {
     if (!enabled) return;
     enabled = false;
     document.body.style.cursor = previousCursor;
+    document.removeEventListener('mousemove', onMouseMove, true);
     document.removeEventListener('click', onClick, true);
+    removeGhost();
     lines.forEach(g => g.remove());
     lines.length = 0;
   }
