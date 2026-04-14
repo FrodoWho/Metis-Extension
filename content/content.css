@@ -105,3 +105,140 @@
   pointer-events: none;
   white-space: nowrap;
 }
+
+/* ── Ghost guide (follows cursor, not interactive) ───────────── */
+.msr-guide-ghost {
+  pointer-events: none;
+}
+.msr-guide-ghost .msr-guide-line {
+  opacity: 0.4;
+}
+
+/* ── Horizontal guide modifier ───────────────────────────────── */
+.msr-guide.msr-guide-h {
+  left: 0;
+  right: 0;
+  bottom: auto;
+  width: 100vw;
+  height: 0;
+}
+.msr-guide.msr-guide-h .msr-guide-line {
+  top: 0;
+  bottom: auto;
+  left: 0;
+  right: 0;
+  width: 100vw;
+  height: 1px;
+}
+.msr-guide.msr-guide-h .msr-guide-hit {
+  top: -4px;
+  bottom: auto;
+  left: 0;
+  right: 0;
+  width: 100vw;
+  height: 8px;
+}
+.msr-guide.msr-guide-h .msr-guide-label {
+  top: 4px;
+  left: 4px;
+}
+
+/* ── Gap label (px distance between adjacent parallel guides) ── */
+.msr-gap-label {
+  position: fixed;
+  background: rgba(17, 17, 17, 0.85);
+  color: #fff;
+  font-family: 'SF Mono', 'Menlo', 'Consolas', monospace;
+  font-size: 9px;
+  padding: 2px 5px;
+  border-radius: 3px;
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 2147483647;
+  transform: translate(-50%, -50%);
+}
+
+/* ── In-page toolbar ─────────────────────────────────────────── */
+#msr-toolbar {
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  z-index: 2147483647;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+#msr-toolbar.msr-tb-hidden {
+  display: none;
+}
+
+.msr-tb-row-main {
+  background: #111;
+  border-radius: 8px;
+  padding: 4px;
+  display: flex;
+  gap: 2px;
+  align-items: center;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+.msr-tb-row-sub {
+  background: #1a1a1a;
+  border-radius: 7px;
+  padding: 4px;
+  display: flex;
+  gap: 2px;
+  align-items: center;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+.msr-tb-row-sub.msr-tb-hidden {
+  display: none;
+}
+
+.msr-tb-btn {
+  background: #1e1e1e;
+  border: none;
+  border-radius: 5px;
+  padding: 5px 10px;
+  color: #888;
+  font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  line-height: 1;
+  font-family: inherit;
+}
+
+.msr-tb-btn:hover {
+  background: #2a2a2a;
+  color: #ccc;
+}
+
+.msr-tb-btn.msr-tb-btn-active {
+  background: #6366f1;
+  color: #fff;
+}
+
+.msr-tb-close {
+  color: #555;
+  padding: 5px 7px;
+  background: transparent;
+}
+
+.msr-tb-close:hover {
+  color: #999;
+  background: #1e1e1e;
+}
+
+.msr-tb-sep {
+  width: 1px;
+  height: 16px;
+  background: #333;
+  margin: 0 2px;
+  flex-shrink: 0;
+}
