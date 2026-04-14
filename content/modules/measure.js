@@ -146,7 +146,7 @@ const measure = (() => {
   }
 
   function onClick(e) {
-    if (isExtEl(e.target)) return;
+    if (e.target.closest && e.target.closest('[data-measure-extension]')) return;
     // Prevent the page's own click handlers and browser defaults (link navigation,
     // form submission) from firing while measure is active
     e.stopPropagation();
