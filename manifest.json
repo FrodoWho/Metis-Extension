@@ -17,6 +17,7 @@
     "js": [
       "content/modules/guides.js",
       "content/modules/measure.js",
+      "content/modules/toolbar.js",
       "content/content.js"
     ],
     "css": ["content/content.css"],
