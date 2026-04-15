@@ -10,7 +10,7 @@
       "strict_min_version": "140.0",
       "data_collection_permissions": {
         "data_collection": "none",
-        "required": []
+        "required": ["extension_authors"]
       }
     }
   },
