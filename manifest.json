@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Metis",
   "version": "0.1.0",
-  "description": "Metis — inspect element dimensions and place alignment guides on any page.",
+  "description": "A lightweight design tool for checking layouts directly in your browser. Measure elements, drop guide lines and see gaps without opening DevTools.",
   "permissions": ["tabs"],
   "commands": {
     "_execute_action": {
