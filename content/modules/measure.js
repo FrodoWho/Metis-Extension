@@ -28,6 +28,25 @@ const measure = (() => {
     return `${top} ${right} ${bottom} ${left}`;
   }
 
+  function panelRow(key, value) {
+    const row = document.createElement('div');
+    row.className = 'msr-panel-row';
+    const k = document.createElement('span');
+    k.className = 'msr-panel-key';
+    k.textContent = key;
+    const v = document.createElement('span');
+    v.textContent = value;
+    row.appendChild(k);
+    row.appendChild(v);
+    return row;
+  }
+
+  function panelSep() {
+    const s = document.createElement('div');
+    s.className = 'msr-panel-sep';
+    return s;
+  }
+
   function buildPanelEl(bm, locked) {
     const pad = shorthand(bm.padTop, bm.padRight, bm.padBottom, bm.padLeft);
     const mar = shorthand(bm.marTop, bm.marRight, bm.marBottom, bm.marLeft);
@@ -35,17 +54,21 @@ const measure = (() => {
     p.setAttribute(EXT_ATTR, '');
     p.classList.add('msr-panel');
     if (locked) p.classList.add('msr-panel-locked');
-    p.innerHTML = `
-      <div class="msr-panel-title">${locked ? 'Locked' : 'Box Model'}</div>
-      <div class="msr-panel-row"><span class="msr-panel-key">w</span><span>${bm.w}px</span></div>
-      <div class="msr-panel-row"><span class="msr-panel-key">h</span><span>${bm.h}px</span></div>
-      <div class="msr-panel-sep"></div>
-      <div class="msr-panel-row"><span class="msr-panel-key">pad</span><span>${pad}</span></div>
-      <div class="msr-panel-row"><span class="msr-panel-key">mar</span><span>${mar}</span></div>
-      <div class="msr-panel-sep"></div>
-      <div class="msr-panel-row"><span class="msr-panel-key">x</span><span>${bm.x}px</span></div>
-      <div class="msr-panel-row"><span class="msr-panel-key">y</span><span>${bm.y}px</span></div>
-    `;
+
+    const title = document.createElement('div');
+    title.className = 'msr-panel-title';
+    title.textContent = locked ? 'Locked' : 'Box Model';
+
+    p.appendChild(title);
+    p.appendChild(panelRow('w', bm.w + 'px'));
+    p.appendChild(panelRow('h', bm.h + 'px'));
+    p.appendChild(panelSep());
+    p.appendChild(panelRow('pad', pad));
+    p.appendChild(panelRow('mar', mar));
+    p.appendChild(panelSep());
+    p.appendChild(panelRow('x', bm.x + 'px'));
+    p.appendChild(panelRow('y', bm.y + 'px'));
+
     document.body.appendChild(p);
     return p;
   }
@@ -123,9 +146,10 @@ const measure = (() => {
       if (panel) positionPanel(panel, r);
     }
 
-    // Locked elements — sweep stale first
+    // Locked elements — sweep stale / hidden, then reposition the rest
     for (let i = locks.length - 1; i >= 0; i--) {
-      if (!document.contains(locks[i].el)) {
+      const el = locks[i].el;
+      if (!document.contains(el) || el.offsetWidth === 0 && el.offsetHeight === 0) {
         locks[i].ring.remove();
         locks[i].panel.remove();
         locks.splice(i, 1);
