@@ -4,6 +4,12 @@
   "version": "0.1.0",
   "description": "Inspect element dimensions and place alignment guides on any page.",
   "permissions": ["activeTab", "storage", "tabs"],
+  "commands": {
+    "_execute_action": {
+      "suggested_key": { "default": "Alt+Shift+M", "mac": "Alt+Shift+M" },
+      "description": "Toggle the Measure toolbar"
+    }
+  },
   "background": { "service_worker": "background.js" },
   "action": {
     "default_icon": {

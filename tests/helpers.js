@@ -57,4 +57,8 @@ async function toggleToolbar(worker, page) {
   await sendToContent(worker, page, { action: 'toggleToolbar' });
 }
 
-module.exports = { launchExtension, activateTool, setGuideDirection, setGapVisible, toggleToolbar };
+async function clearGuides(worker, page) {
+  await sendToContent(worker, page, { clearGuides: true });
+}
+
+module.exports = { launchExtension, activateTool, setGuideDirection, setGapVisible, toggleToolbar, clearGuides };

@@ -95,10 +95,23 @@ const toolbar = (() => {
       btnGap.classList.toggle('msr-tb-btn-active', state.gapVisible);
     });
 
+    const sep3 = document.createElement('div');
+    sep3.className = 'msr-tb-sep';
+    sep3.setAttribute('data-measure-extension', '');
+
+    const btnClear = document.createElement('button');
+    btnClear.id = 'msr-tb-clear';
+    btnClear.className = 'msr-tb-btn';
+    btnClear.setAttribute('data-measure-extension', '');
+    btnClear.textContent = 'Clear';
+    btnClear.addEventListener('click', () => guides.clearAll());
+
     rowSub.appendChild(btnV);
     rowSub.appendChild(btnH);
     rowSub.appendChild(sep2);
     rowSub.appendChild(btnGap);
+    rowSub.appendChild(sep3);
+    rowSub.appendChild(btnClear);
 
     container.appendChild(rowMain);
     container.appendChild(rowSub);

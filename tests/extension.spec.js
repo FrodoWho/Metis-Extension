@@ -8,7 +8,7 @@
 
 const { test, expect } = require('@playwright/test');
 const path             = require('path');
-const { launchExtension, activateTool, setGuideDirection, setGapVisible, toggleToolbar } = require('./helpers');
+const { launchExtension, activateTool, setGuideDirection, setGapVisible, toggleToolbar, clearGuides } = require('./helpers');
 
 const TEST_PAGE = 'http://localhost:4321/';
 
@@ -281,4 +281,133 @@ test('highlight repositions when viewport is resized', async () => {
   // Highlight position should match the element (width/height differ by the 2px border)
   expect(afterHighlight.x).toBeCloseTo(afterEl.x, 0);
   expect(afterHighlight.y).toBeCloseTo(afterEl.y, 0);
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Mutual exclusivity
+// ─────────────────────────────────────────────────────────────────────────────
+
+test('enabling Measure via toolbar disables Guides', async () => {
+  await toggleToolbar(worker, page);
+  await page.locator('.msr-tb-btn', { hasText: 'Guides' }).click();
+  await page.mouse.move(300, 200);
+  await expect(page.locator('.msr-guide-ghost')).toHaveCount(1);
+
+  await page.locator('.msr-tb-btn', { hasText: 'Measure' }).click();
+
+  await expect(page.locator('.msr-guide-ghost')).toHaveCount(0);
+  await expect(page.locator('.msr-hover-highlight')).toHaveCount(1);
+});
+
+test('enabling Guides via toolbar disables Measure', async () => {
+  await toggleToolbar(worker, page);
+  await page.locator('.msr-tb-btn', { hasText: 'Measure' }).click();
+  await expect(page.locator('.msr-hover-highlight')).toHaveCount(1);
+
+  await page.locator('.msr-tb-btn', { hasText: 'Guides' }).click();
+
+  await expect(page.locator('.msr-hover-highlight')).toHaveCount(0);
+  await page.mouse.move(300, 200);
+  await expect(page.locator('.msr-guide-ghost')).toHaveCount(1);
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Measure — click-to-lock
+// ─────────────────────────────────────────────────────────────────────────────
+
+test('clicking an element in measure mode locks an orange ring', async () => {
+  await activateTool(worker, page, 'measure', true);
+
+  const bb = await page.locator('#blue-box').boundingBox();
+  const cx = bb.x + bb.width / 2;
+  const cy = bb.y + bb.height / 2;
+  await page.mouse.move(cx, cy);
+  await page.waitForTimeout(50);
+  await page.mouse.click(cx, cy);
+  await page.waitForTimeout(50);
+
+  await expect(page.locator('.msr-lock-ring')).toHaveCount(1);
+  await expect(page.locator('.msr-panel-locked')).toHaveCount(1);
+  await expect(page.locator('.msr-panel-locked')).toContainText('Locked');
+});
+
+test('clicking a locked element unlocks it', async () => {
+  await activateTool(worker, page, 'measure', true);
+
+  const bb = await page.locator('#blue-box').boundingBox();
+  const cx = bb.x + bb.width / 2;
+  const cy = bb.y + bb.height / 2;
+  await page.mouse.move(cx, cy);
+  await page.waitForTimeout(50);
+  await page.mouse.click(cx, cy); // lock
+  await page.waitForTimeout(50);
+  await expect(page.locator('.msr-lock-ring')).toHaveCount(1);
+
+  await page.mouse.click(cx, cy); // unlock
+  await page.waitForTimeout(50);
+  await expect(page.locator('.msr-lock-ring')).toHaveCount(0);
+  await expect(page.locator('.msr-panel-locked')).toHaveCount(0);
+});
+
+test('multiple elements can be locked simultaneously', async () => {
+  await activateTool(worker, page, 'measure', true);
+
+  const blue = await page.locator('#blue-box').boundingBox();
+  await page.mouse.move(blue.x + blue.width / 2, blue.y + blue.height / 2);
+  await page.waitForTimeout(50);
+  await page.mouse.click(blue.x + blue.width / 2, blue.y + blue.height / 2);
+  await page.waitForTimeout(50);
+
+  const red = await page.locator('#red-box').boundingBox();
+  await page.mouse.move(red.x + red.width / 2, red.y + red.height / 2);
+  await page.waitForTimeout(50);
+  await page.mouse.click(red.x + red.width / 2, red.y + red.height / 2);
+  await page.waitForTimeout(50);
+
+  await expect(page.locator('.msr-lock-ring')).toHaveCount(2);
+  await expect(page.locator('.msr-panel-locked')).toHaveCount(2);
+});
+
+test('disabling measure clears all locks', async () => {
+  await activateTool(worker, page, 'measure', true);
+
+  const bb = await page.locator('#blue-box').boundingBox();
+  await page.mouse.move(bb.x + bb.width / 2, bb.y + bb.height / 2);
+  await page.waitForTimeout(50);
+  await page.mouse.click(bb.x + bb.width / 2, bb.y + bb.height / 2);
+  await page.waitForTimeout(50);
+  await expect(page.locator('.msr-lock-ring')).toHaveCount(1);
+
+  await activateTool(worker, page, 'measure', false);
+  await expect(page.locator('.msr-lock-ring')).toHaveCount(0);
+  await expect(page.locator('.msr-panel-locked')).toHaveCount(0);
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Guides — clear all
+// ─────────────────────────────────────────────────────────────────────────────
+
+test('Clear button removes all guides', async () => {
+  await toggleToolbar(worker, page);
+  await page.locator('.msr-tb-btn', { hasText: 'Guides' }).click();
+
+  await page.mouse.click(200, 300);
+  await page.mouse.click(400, 300);
+  await page.mouse.click(600, 300);
+  await expect(page.locator('.msr-guide:not(.msr-guide-ghost)')).toHaveCount(3);
+
+  await page.locator('#msr-tb-clear').click();
+  await expect(page.locator('.msr-guide:not(.msr-guide-ghost)')).toHaveCount(0);
+});
+
+test('Clear also removes gap labels', async () => {
+  await activateTool(worker, page, 'guides', true);
+  await page.mouse.click(200, 300);
+  await page.mouse.click(500, 300);
+  await setGapVisible(worker, page, true);
+  await expect(page.locator('.msr-gap-label')).toHaveCount(1);
+
+  await clearGuides(worker, page);
+  await expect(page.locator('.msr-guide:not(.msr-guide-ghost)')).toHaveCount(0);
+  await expect(page.locator('.msr-gap-label')).toHaveCount(0);
 });

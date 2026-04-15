@@ -231,5 +231,11 @@ const guides = (() => {
     else document.querySelectorAll('.msr-gap-label[data-measure-extension]').forEach(el => el.remove());
   }
 
-  return { enable, disable, setDirection, setGapVisible };
+  function clearAll() {
+    lines.forEach(g => g.remove());
+    lines.length = 0;
+    document.querySelectorAll('.msr-gap-label[data-measure-extension]').forEach(el => el.remove());
+  }
+
+  return { enable, disable, setDirection, setGapVisible, clearAll };
 })();

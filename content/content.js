@@ -8,6 +8,7 @@ chrome.runtime.onMessage.addListener((msg) => {
     if (msg.tool === 'measure') msg.enabled ? measure.enable() : measure.disable();
     if (msg.tool === 'guides')  msg.enabled ? guides.enable()  : guides.disable();
   }
-  if (msg.direction  !== undefined) guides.setDirection(msg.direction);
-  if (msg.gapVisible !== undefined) guides.setGapVisible(msg.gapVisible);
+  if (msg.direction   !== undefined) guides.setDirection(msg.direction);
+  if (msg.gapVisible  !== undefined) guides.setGapVisible(msg.gapVisible);
+  if (msg.clearGuides)               guides.clearAll();
 });
