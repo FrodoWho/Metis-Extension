@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Measure",
+  "name": "Metis",
   "version": "0.1.0",
-  "description": "Inspect element dimensions and place alignment guides on any page.",
+  "description": "Metis — inspect element dimensions and place alignment guides on any page.",
   "permissions": ["tabs"],
   "commands": {
     "_execute_action": {

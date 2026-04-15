@@ -1,6 +1,6 @@
-# Measure
+# Metis
 
-Chrome extension for inspecting element dimensions and placing alignment guides on any page.
+Chrome extension for inspecting element dimensions and placing alignment guides on any page. Named after the Greek Titan goddess of wisdom and craft.
 
 ## Install
 
@@ -59,4 +59,4 @@ Scripts load in order: `overlay → guides → measure → toolbar → content`.
 
 If this tool helps your workflow, consider buying me a coffee:
 
-[![Ko-fi](https://img.shields.io/badge/Ko--fi-Support-ff5e5b?logo=ko-fi&logoColor=white)](https://ko-fi.com/FrodoWho)
+[![Ko-fi](https://img.shields.io/badge/Ko--fi-Support-ff5e5b?logo=ko-fi&logoColor=white)](https://ko-fi.com/frodowho)
