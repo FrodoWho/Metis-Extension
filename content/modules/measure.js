@@ -149,7 +149,7 @@ const measure = (() => {
     // Locked elements — sweep stale / hidden, then reposition the rest
     for (let i = locks.length - 1; i >= 0; i--) {
       const el = locks[i].el;
-      if (!document.contains(el) || el.offsetWidth === 0 && el.offsetHeight === 0) {
+      if (!document.contains(el) || (el.offsetWidth === 0 && el.offsetHeight === 0)) {
         locks[i].ring.remove();
         locks[i].panel.remove();
         locks.splice(i, 1);
