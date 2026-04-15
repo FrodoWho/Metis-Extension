@@ -24,6 +24,8 @@ const toolbar = (() => {
     btnMeasure = document.createElement('button');
     btnMeasure.className = 'msr-tb-btn';
     btnMeasure.setAttribute('data-measure-extension', '');
+    btnMeasure.setAttribute('aria-label', 'Toggle measure tool');
+    btnMeasure.setAttribute('aria-pressed', 'false');
     btnMeasure.textContent = '📐 Measure';
     btnMeasure.addEventListener('click', () => {
       applyTool('measure', !state.measure);
@@ -32,6 +34,8 @@ const toolbar = (() => {
     btnGuides = document.createElement('button');
     btnGuides.className = 'msr-tb-btn';
     btnGuides.setAttribute('data-measure-extension', '');
+    btnGuides.setAttribute('aria-label', 'Toggle guides tool');
+    btnGuides.setAttribute('aria-pressed', 'false');
     btnGuides.textContent = '📏 Guides';
     btnGuides.addEventListener('click', () => {
       applyTool('guides', !state.guides);
@@ -53,11 +57,13 @@ const toolbar = (() => {
     const btnClose = document.createElement('button');
     btnClose.className = 'msr-tb-btn msr-tb-close';
     btnClose.setAttribute('data-measure-extension', '');
+    btnClose.setAttribute('aria-label', 'Close toolbar');
     btnClose.textContent = '✕';
     btnClose.addEventListener('click', () => {
       if (state.measure) applyTool('measure', false);
       if (state.guides)  applyTool('guides',  false);
       container.classList.add('msr-tb-hidden');
+      document.removeEventListener('keydown', onKeyDown, true);
     });
 
     rowMain.appendChild(btnMeasure);
@@ -76,24 +82,22 @@ const toolbar = (() => {
     btnV.id = 'msr-tb-v';
     btnV.className = 'msr-tb-btn msr-tb-btn-active'; // V is default
     btnV.setAttribute('data-measure-extension', '');
+    btnV.setAttribute('aria-label', 'Vertical guides');
+    btnV.setAttribute('aria-pressed', 'true');
     btnV.textContent = 'V';
     btnV.addEventListener('click', () => {
-      state.direction = 'v';
-      guides.setDirection('v');
-      btnV.classList.add('msr-tb-btn-active');
-      btnH.classList.remove('msr-tb-btn-active');
+      setDirection('v');
     });
 
     btnH = document.createElement('button');
     btnH.id = 'msr-tb-h';
     btnH.className = 'msr-tb-btn';
     btnH.setAttribute('data-measure-extension', '');
+    btnH.setAttribute('aria-label', 'Horizontal guides');
+    btnH.setAttribute('aria-pressed', 'false');
     btnH.textContent = 'H';
     btnH.addEventListener('click', () => {
-      state.direction = 'h';
-      guides.setDirection('h');
-      btnH.classList.add('msr-tb-btn-active');
-      btnV.classList.remove('msr-tb-btn-active');
+      setDirection('h');
     });
 
     const sep2 = document.createElement('div');
@@ -104,11 +108,14 @@ const toolbar = (() => {
     btnGap.id = 'msr-tb-gap';
     btnGap.className = 'msr-tb-btn';
     btnGap.setAttribute('data-measure-extension', '');
+    btnGap.setAttribute('aria-label', 'Toggle gap labels');
+    btnGap.setAttribute('aria-pressed', 'false');
     btnGap.textContent = 'Gap';
     btnGap.addEventListener('click', () => {
       state.gapVisible = !state.gapVisible;
       guides.setGapVisible(state.gapVisible);
       btnGap.classList.toggle('msr-tb-btn-active', state.gapVisible);
+      btnGap.setAttribute('aria-pressed', String(state.gapVisible));
     });
 
     const sep3 = document.createElement('div');
@@ -119,6 +126,7 @@ const toolbar = (() => {
     btnClear.id = 'msr-tb-clear';
     btnClear.className = 'msr-tb-btn';
     btnClear.setAttribute('data-measure-extension', '');
+    btnClear.setAttribute('aria-label', 'Clear all guides');
     btnClear.textContent = 'Clear';
     btnClear.addEventListener('click', () => guides.clearAll());
 
@@ -132,6 +140,23 @@ const toolbar = (() => {
     container.appendChild(rowMain);
     container.appendChild(rowSub);
     document.body.appendChild(container);
+  }
+
+  function setDirection(d) {
+    state.direction = d;
+    guides.setDirection(d);
+    if (btnV && btnH) {
+      btnV.classList.toggle('msr-tb-btn-active', d === 'v');
+      btnH.classList.toggle('msr-tb-btn-active', d === 'h');
+      btnV.setAttribute('aria-pressed', String(d === 'v'));
+      btnH.setAttribute('aria-pressed', String(d === 'h'));
+    }
+  }
+
+  function onKeyDown(e) {
+    if (!state.guides) return;
+    if (e.key === 'v' || e.key === 'V') { setDirection('v'); e.preventDefault(); }
+    if (e.key === 'h' || e.key === 'H') { setDirection('h'); e.preventDefault(); }
   }
 
   function applyTool(tool, enabled) {
@@ -154,19 +179,21 @@ const toolbar = (() => {
     if (!container) return;
     btnMeasure.classList.toggle('msr-tb-btn-active', state.measure);
     btnGuides.classList.toggle('msr-tb-btn-active', state.guides);
+    btnMeasure.setAttribute('aria-pressed', String(state.measure));
+    btnGuides.setAttribute('aria-pressed', String(state.guides));
     rowSub.classList.toggle('msr-tb-hidden', !state.guides);
-    // Toolbar visibility is managed by toggle() and the close button — not here.
   }
 
-  // Called when the user clicks the extension icon.
   function toggle() {
     buildDOM();
     if (container.classList.contains('msr-tb-hidden')) {
       container.classList.remove('msr-tb-hidden');
+      document.addEventListener('keydown', onKeyDown, true);
     } else {
       if (state.measure) applyTool('measure', false);
       if (state.guides)  applyTool('guides',  false);
       container.classList.add('msr-tb-hidden');
+      document.removeEventListener('keydown', onKeyDown, true);
     }
   }
 

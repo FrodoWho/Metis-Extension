@@ -19,7 +19,7 @@
     }
   },
   "content_scripts": [{
-    "matches": ["<all_urls>"],
+    "matches": ["http://*/*", "https://*/*"],
     "js": [
       "content/modules/overlay.js",
       "content/modules/guides.js",
