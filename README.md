@@ -7,7 +7,7 @@ Chrome extension for inspecting element dimensions and placing alignment guides 
 1. Clone this repo
 2. Open `chrome://extensions` and enable **Developer mode**
 3. Click **Load unpacked** and select this directory
-4. The 📏 icon appears in the toolbar — click it or press **Alt+Shift+M** to toggle
+4. The 📏 icon appears in the toolbar, click it or press **Alt+Shift+M (⌥⇧M on Mac)** to toggle
 
 ## Usage
 
@@ -21,7 +21,7 @@ Chrome extension for inspecting element dimensions and placing alignment guides 
 | Clear all guides | Click **Clear** |
 | Snap to element | Guides auto-snap to element edges/centers (hold **Shift** to bypass) |
 
-Measure and Guides are mutually exclusive — enabling one disables the other.
+Measure and Guides are mutually exclusive, enabling one disables the other.
 
 ## Tests
 
