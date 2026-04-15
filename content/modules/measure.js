@@ -131,6 +131,32 @@ const measure = (() => {
     }
   }
 
+  /* ── Reposition all locks (scroll / resize) ──────────────── */
+
+  function updatePanel(panel, bm) {
+    const pad = shorthand(bm.padTop, bm.padRight, bm.padBottom, bm.padLeft);
+    const mar = shorthand(bm.marTop, bm.marRight, bm.marBottom, bm.marLeft);
+    const vals = panel.querySelectorAll('.msr-panel-row > span:last-child');
+    // Order matches makePanel: w, h, pad, mar, x, y
+    vals[0].textContent = `${bm.w}px`;
+    vals[1].textContent = `${bm.h}px`;
+    vals[2].textContent = pad;
+    vals[3].textContent = mar;
+    vals[4].textContent = `${bm.x}px`;
+    vals[5].textContent = `${bm.y}px`;
+  }
+
+  function repositionAll() {
+    sweepStaleLocks();
+    for (const lock of locks) {
+      const bm = getBoxModel(lock.el);
+      positionNodes(lock.nodes, bm);
+      lock.nodes.wLabel.textContent = `↔ ${bm.w}px`;
+      lock.nodes.hLabel.textContent = `↕ ${bm.h}px`;
+      updatePanel(lock.nodes.panel, bm);
+    }
+  }
+
   /* ── Event handlers ─────────────────────────────────────── */
 
   function onMouseMove(e) {
@@ -161,11 +187,15 @@ const measure = (() => {
     highlight = createHighlight();
     document.addEventListener('mousemove', onMouseMove, true);
     document.addEventListener('click',     onClick,     true);
+    document.addEventListener('scroll', repositionAll, true);
+    window.addEventListener('resize',  repositionAll);
   }
 
   function disable() {
     document.removeEventListener('mousemove', onMouseMove, true);
     document.removeEventListener('click',     onClick,     true);
+    document.removeEventListener('scroll', repositionAll, true);
+    window.removeEventListener('resize',  repositionAll);
     highlight?.remove();
     highlight = null;
     hoverEl   = null;

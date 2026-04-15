@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Measure Extension — Test Harness</title>
+  <style>
+    body { font-family: system-ui; margin: 0; padding: 40px; min-height: 3000px; background: #f5f5f5; }
+    .target { background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 24px; margin-bottom: 24px; max-width: 600px; }
+    .target h2 { margin: 0 0 8px; }
+    .target p { margin: 0; color: #666; }
+    .spacer { height: 800px; background: linear-gradient(to bottom, #e0e0e0, #f5f5f5); border-radius: 8px; margin-bottom: 24px; display: flex; align-items: center; justify-content: center; color: #999; font-size: 14px; }
+    .controls { position: fixed; bottom: 12px; right: 12px; background: #111; color: #fff; padding: 12px; border-radius: 8px; font-size: 12px; z-index: 999999; }
+    .controls button { background: #333; color: #fff; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; margin: 2px; font-size: 11px; }
+    .controls button:hover { background: #555; }
+    .controls button.active { background: #6366f1; }
+  </style>
+  <link rel="stylesheet" href="../content/content.css">
+</head>
+<body>
+  <h1>Measure Extension Test Harness</h1>
+  <p style="margin-bottom: 24px; color: #666;">This page loads the extension modules directly for testing. Scroll down to verify overlays reposition.</p>
+
+  <div class="target" id="box1">
+    <h2>Target Box 1</h2>
+    <p>Click to lock a measurement. Then scroll — the overlay should follow.</p>
+  </div>
+
+  <div class="target" id="box2" style="padding: 16px 32px; margin-left: 80px;">
+    <h2>Target Box 2</h2>
+    <p>Different padding and margin to verify box model values update.</p>
+  </div>
+
+  <div class="spacer">Scroll past here to test repositioning</div>
+
+  <div class="target" id="box3">
+    <h2>Target Box 3 (below fold)</h2>
+    <p>This box is below the fold. Lock a box above, scroll here, verify it tracked.</p>
+  </div>
+
+  <div class="spacer">More scroll space</div>
+
+  <div class="controls" id="controls">
+    <div style="margin-bottom: 6px; font-weight: 600;">Test Controls</div>
+    <button id="btn-measure">Measure</button>
+    <button id="btn-guides">Guides</button>
+  </div>
+
+  <!-- Shim chrome.* APIs so content scripts don't throw -->
+  <script>
+    window.chrome = {
+      runtime: {
+        onMessage: { addListener: function() {} },
+        sendMessage: function() { return Promise.resolve(); }
+      },
+      storage: {
+        session: {
+          get: function(keys, cb) { cb({}); },
+          set: function() {}
+        }
+      }
+    };
+  </script>
+
+  <!-- Load modules in the same order as manifest.json -->
+  <script src="../content/modules/guides.js"></script>
+  <script src="../content/modules/measure.js"></script>
+  <script src="../content/modules/toolbar.js"></script>
+  <script src="../content/content.js"></script>
+
+  <script>
+    const btnMeasure = document.getElementById('btn-measure');
+    const btnGuides = document.getElementById('btn-guides');
+    let measureOn = false, guidesOn = false;
+
+    btnMeasure.addEventListener('click', () => {
+      measureOn = !measureOn;
+      measureOn ? measure.enable() : measure.disable();
+      btnMeasure.classList.toggle('active', measureOn);
+    });
+
+    btnGuides.addEventListener('click', () => {
+      guidesOn = !guidesOn;
+      guidesOn ? guides.enable() : guides.disable();
+      btnGuides.classList.toggle('active', guidesOn);
+    });
+  </script>
+</body>
+</html>
