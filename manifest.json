@@ -7,6 +7,7 @@
   "browser_specific_settings": {
     "gecko": { "id": "metis@frodowho", "strict_min_version": "109.0" }
   },
+  "data_collection_permissions": { "data_collection": "none" },
   "commands": {
     "_execute_action": {
       "suggested_key": { "default": "Alt+Shift+M", "mac": "Alt+Shift+M" },
