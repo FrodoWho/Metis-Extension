@@ -14,16 +14,14 @@ const toolbar = (() => {
     // ── Row 1: tool switcher ──────────────────────────────────
     const rowMain = document.createElement('div');
     rowMain.className = 'msr-tb-row-main';
+    rowMain.setAttribute('data-measure-extension', '');
 
     btnMeasure = document.createElement('button');
     btnMeasure.className = 'msr-tb-btn';
     btnMeasure.setAttribute('data-measure-extension', '');
     btnMeasure.textContent = '📐 Measure';
     btnMeasure.addEventListener('click', () => {
-      const next = !state.measure;
-      applyTool('measure', next);
-      chrome.storage.session.set({ measure: next });
-      chrome.runtime.sendMessage({ tool: 'measure', enabled: next }).catch(() => {});
+      applyTool('measure', !state.measure);
     });
 
     btnGuides = document.createElement('button');
@@ -31,10 +29,7 @@ const toolbar = (() => {
     btnGuides.setAttribute('data-measure-extension', '');
     btnGuides.textContent = '📏 Guides';
     btnGuides.addEventListener('click', () => {
-      const next = !state.guides;
-      applyTool('guides', next);
-      chrome.storage.session.set({ guides: next });
-      chrome.runtime.sendMessage({ tool: 'guides', enabled: next }).catch(() => {});
+      applyTool('guides', !state.guides);
     });
 
     const sep1 = document.createElement('div');
@@ -46,8 +41,9 @@ const toolbar = (() => {
     btnClose.setAttribute('data-measure-extension', '');
     btnClose.textContent = '✕';
     btnClose.addEventListener('click', () => {
-      if (state.measure) { applyTool('measure', false); chrome.storage.session.set({ measure: false }); chrome.runtime.sendMessage({ tool: 'measure', enabled: false }).catch(() => {}); }
-      if (state.guides)  { applyTool('guides',  false); chrome.storage.session.set({ guides: false });  chrome.runtime.sendMessage({ tool: 'guides',  enabled: false }).catch(() => {}); }
+      if (state.measure) applyTool('measure', false);
+      if (state.guides)  applyTool('guides',  false);
+      container.classList.add('msr-tb-hidden');
     });
 
     rowMain.appendChild(btnMeasure);
@@ -61,7 +57,8 @@ const toolbar = (() => {
     rowSub.setAttribute('data-measure-extension', '');
 
     btnV = document.createElement('button');
-    btnV.className = 'msr-tb-btn msr-tb-btn-active'; // 'v' is default
+    btnV.id = 'msr-tb-v';
+    btnV.className = 'msr-tb-btn msr-tb-btn-active'; // V is default
     btnV.setAttribute('data-measure-extension', '');
     btnV.textContent = 'V';
     btnV.addEventListener('click', () => {
@@ -72,6 +69,7 @@ const toolbar = (() => {
     });
 
     btnH = document.createElement('button');
+    btnH.id = 'msr-tb-h';
     btnH.className = 'msr-tb-btn';
     btnH.setAttribute('data-measure-extension', '');
     btnH.textContent = 'H';
@@ -87,6 +85,7 @@ const toolbar = (() => {
     sep2.setAttribute('data-measure-extension', '');
 
     btnGap = document.createElement('button');
+    btnGap.id = 'msr-tb-gap';
     btnGap.className = 'msr-tb-btn';
     btnGap.setAttribute('data-measure-extension', '');
     btnGap.textContent = 'Gap';
@@ -118,13 +117,20 @@ const toolbar = (() => {
     btnMeasure.classList.toggle('msr-tb-btn-active', state.measure);
     btnGuides.classList.toggle('msr-tb-btn-active', state.guides);
     rowSub.classList.toggle('msr-tb-hidden', !state.guides);
-    container.classList.toggle('msr-tb-hidden', !state.measure && !state.guides);
+    // Toolbar visibility is managed by toggle() and the close button — not here.
   }
 
-  function syncFromPopup(tool, enabled) {
+  // Called when the user clicks the extension icon.
+  function toggle() {
     buildDOM();
-    applyTool(tool, enabled);
+    if (container.classList.contains('msr-tb-hidden')) {
+      container.classList.remove('msr-tb-hidden');
+    } else {
+      if (state.measure) applyTool('measure', false);
+      if (state.guides)  applyTool('guides',  false);
+      container.classList.add('msr-tb-hidden');
+    }
   }
 
-  return { syncFromPopup };
+  return { toggle };
 })();

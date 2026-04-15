@@ -1,9 +1,8 @@
 const guides = (() => {
   const lines = [];
-  let enabled = false;
-  let previousCursor = '';
-  let direction = 'v'; // 'v' | 'h'
-  let ghost = null;
+  let enabled    = false;
+  let direction  = 'v'; // 'v' | 'h'
+  let ghost      = null;
   let gapVisible = false;
 
   function createGuide(coord) {
@@ -51,10 +50,8 @@ const guides = (() => {
   }
 
   function renderGaps() {
-    // Remove all existing gap labels before re-rendering
     document.querySelectorAll('.msr-gap-label[data-measure-extension]').forEach(el => el.remove());
 
-    // Vertical guides: gap labels centred horizontally between adjacent lines
     const vGuides = lines
       .filter(c => c.dataset.orient === 'v')
       .sort((a, b) => parseFloat(a.style.left) - parseFloat(b.style.left));
@@ -67,11 +64,10 @@ const guides = (() => {
       lbl.classList.add('msr-gap-label');
       lbl.textContent = Math.round(x2 - x1) + 'px';
       lbl.style.left = ((x1 + x2) / 2) + 'px';
-      lbl.style.top = '50%';
+      lbl.style.top  = '50%';
       document.body.appendChild(lbl);
     }
 
-    // Horizontal guides: gap labels centred vertically between adjacent lines
     const hGuides = lines
       .filter(c => c.dataset.orient === 'h')
       .sort((a, b) => parseFloat(a.style.top) - parseFloat(b.style.top));
@@ -83,7 +79,7 @@ const guides = (() => {
       lbl.setAttribute('data-measure-extension', '');
       lbl.classList.add('msr-gap-label');
       lbl.textContent = Math.round(y2 - y1) + 'px';
-      lbl.style.top = ((y1 + y2) / 2) + 'px';
+      lbl.style.top  = ((y1 + y2) / 2) + 'px';
       lbl.style.left = '50%';
       document.body.appendChild(lbl);
     }
@@ -92,7 +88,7 @@ const guides = (() => {
   function ensureGhost() {
     if (!document.body) return;
     if (ghost && ghost.isConnected) return;
-    ghost = null; // discard stale reference if detached from a previous document
+    ghost = null;
     ghost = document.createElement('div');
     ghost.setAttribute('data-measure-extension', '');
     ghost.classList.add('msr-guide', 'msr-guide-ghost');
@@ -110,20 +106,20 @@ const guides = (() => {
 
   function onMouseMove(e) {
     ensureGhost();
-    if (!ghost) return; // body not ready yet (SPA mid-navigation)
+    if (!ghost) return;
     if (direction === 'h') {
       ghost.classList.add('msr-guide-h');
-      ghost.style.top = e.clientY + 'px';
+      ghost.style.top  = e.clientY + 'px';
       ghost.style.left = '';
     } else {
       ghost.classList.remove('msr-guide-h');
       ghost.style.left = e.clientX + 'px';
-      ghost.style.top = '';
+      ghost.style.top  = '';
     }
   }
 
   function onClick(e) {
-    if (e.target.closest && e.target.closest('[data-measure-extension]')) return;
+    e.preventDefault();
     const coord = direction === 'h' ? e.clientY : e.clientX;
     createGuide(coord);
   }
@@ -131,18 +127,20 @@ const guides = (() => {
   function enable() {
     if (enabled) return;
     enabled = true;
-    previousCursor = document.body.style.cursor;
-    document.body.style.cursor = 'crosshair';
-    document.addEventListener('mousemove', onMouseMove, true);
-    document.addEventListener('click', onClick, true);
+    msrOverlay.setGuides(true);
+    msrOverlay.el.addEventListener('mousemove', onMouseMove);
+    msrOverlay.el.addEventListener('click', onClick);
   }
 
   function disable() {
     if (!enabled) return;
     enabled = false;
-    document.body.style.cursor = previousCursor;
-    document.removeEventListener('mousemove', onMouseMove, true);
-    document.removeEventListener('click', onClick, true);
+    const overlayEl = msrOverlay.el; // capture before possible destruction
+    if (overlayEl) {
+      overlayEl.removeEventListener('mousemove', onMouseMove);
+      overlayEl.removeEventListener('click', onClick);
+    }
+    msrOverlay.setGuides(false);
     removeGhost();
     lines.forEach(g => g.remove());
     lines.length = 0;
