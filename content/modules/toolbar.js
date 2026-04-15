@@ -64,6 +64,16 @@ const toolbar = (() => {
       if (state.guides)  applyTool('guides',  false);
       container.classList.add('msr-tb-hidden');
       document.removeEventListener('keydown', onKeyDown, true);
+      keysActive = false;
+    });
+
+    const btnKofi = document.createElement('button');
+    btnKofi.className = 'msr-tb-btn msr-tb-kofi';
+    btnKofi.setAttribute('data-measure-extension', '');
+    btnKofi.setAttribute('aria-label', 'Support on Ko-fi');
+    btnKofi.textContent = '☕';
+    btnKofi.addEventListener('click', () => {
+      window.open('https://ko-fi.com/FrodoWho', '_blank');
     });
 
     rowMain.appendChild(btnMeasure);
@@ -71,6 +81,7 @@ const toolbar = (() => {
     rowMain.appendChild(sep1);
     rowMain.appendChild(hint);
     rowMain.appendChild(sep2hint);
+    rowMain.appendChild(btnKofi);
     rowMain.appendChild(btnClose);
 
     // ── Row 2: guides sub-options ─────────────────────────────
@@ -184,16 +195,22 @@ const toolbar = (() => {
     rowSub.classList.toggle('msr-tb-hidden', !state.guides);
   }
 
+  let keysActive = false;
+
   function toggle() {
     buildDOM();
     if (container.classList.contains('msr-tb-hidden')) {
       container.classList.remove('msr-tb-hidden');
-      document.addEventListener('keydown', onKeyDown, true);
+      if (!keysActive) {
+        document.addEventListener('keydown', onKeyDown, true);
+        keysActive = true;
+      }
     } else {
       if (state.measure) applyTool('measure', false);
       if (state.guides)  applyTool('guides',  false);
       container.classList.add('msr-tb-hidden');
       document.removeEventListener('keydown', onKeyDown, true);
+      keysActive = false;
     }
   }
 

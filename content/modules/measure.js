@@ -74,9 +74,10 @@ const measure = (() => {
   }
 
   function positionPanel(p, r) {
-    const gap   = 8;
+    const gap = 8;
     const below = window.innerHeight - (r.top + r.height);
-    p.style.left = r.left + 'px';
+    const left  = Math.min(r.left, window.innerWidth - p.offsetWidth - gap);
+    p.style.left = Math.max(gap, left) + 'px';
     p.style.top  = below >= p.offsetHeight + gap
       ? (r.top + r.height + gap) + 'px'
       : (r.top - p.offsetHeight - gap) + 'px';

@@ -246,6 +246,9 @@
 
 .msr-tb-btn.msr-tb-btn-active { background: #6366f1; color: #fff; }
 
+.msr-tb-kofi { color: #555; padding: 5px 7px; }
+.msr-tb-kofi:hover { color: #fb923c; background: #1e1e1e; }
+
 .msr-tb-shortcut {
   font-size: 9px;
   color: #444;

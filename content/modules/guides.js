@@ -2,6 +2,7 @@ const guides = (() => {
   const EXT_ATTR    = 'data-measure-extension';
   const SNAP_PX     = 8; // snap threshold in px
   const lines       = [];
+  const gapLabels   = []; // cached gap label elements (avoids querySelectorAll)
   let enabled       = false;
   let direction     = 'v'; // 'v' | 'h'
   let ghost         = null;
@@ -108,8 +109,24 @@ const guides = (() => {
 
   // ── Gap labels ───────────────────────────────────────────────
 
+  function removeGapLabels() {
+    gapLabels.forEach(el => el.remove());
+    gapLabels.length = 0;
+  }
+
+  function addGapLabel(text, left, top) {
+    const lbl = document.createElement('div');
+    lbl.setAttribute(EXT_ATTR, '');
+    lbl.classList.add('msr-gap-label');
+    lbl.textContent = text;
+    lbl.style.left = left;
+    lbl.style.top  = top;
+    document.body.appendChild(lbl);
+    gapLabels.push(lbl);
+  }
+
   function renderGaps() {
-    document.querySelectorAll('.msr-gap-label[data-measure-extension]').forEach(el => el.remove());
+    removeGapLabels();
 
     const vGuides = lines
       .filter(c => c.dataset.orient === 'v')
@@ -118,13 +135,7 @@ const guides = (() => {
     for (let i = 0; i < vGuides.length - 1; i++) {
       const x1 = parseFloat(vGuides[i].style.left);
       const x2 = parseFloat(vGuides[i + 1].style.left);
-      const lbl = document.createElement('div');
-      lbl.setAttribute(EXT_ATTR, '');
-      lbl.classList.add('msr-gap-label');
-      lbl.textContent = Math.round(x2 - x1) + 'px';
-      lbl.style.left = ((x1 + x2) / 2) + 'px';
-      lbl.style.top  = '50%';
-      document.body.appendChild(lbl);
+      addGapLabel(Math.round(x2 - x1) + 'px', ((x1 + x2) / 2) + 'px', '50%');
     }
 
     const hGuides = lines
@@ -134,13 +145,7 @@ const guides = (() => {
     for (let i = 0; i < hGuides.length - 1; i++) {
       const y1 = parseFloat(hGuides[i].style.top);
       const y2 = parseFloat(hGuides[i + 1].style.top);
-      const lbl = document.createElement('div');
-      lbl.setAttribute(EXT_ATTR, '');
-      lbl.classList.add('msr-gap-label');
-      lbl.textContent = Math.round(y2 - y1) + 'px';
-      lbl.style.top  = ((y1 + y2) / 2) + 'px';
-      lbl.style.left = '50%';
-      document.body.appendChild(lbl);
+      addGapLabel(Math.round(y2 - y1) + 'px', '50%', ((y1 + y2) / 2) + 'px');
     }
   }
 
@@ -218,7 +223,7 @@ const guides = (() => {
     if (snapHighlight) { snapHighlight.remove(); snapHighlight = null; }
     lines.forEach(g => g.remove());
     lines.length = 0;
-    document.querySelectorAll('.msr-gap-label[data-measure-extension]').forEach(el => el.remove());
+    removeGapLabels();
   }
 
   function setDirection(d) {
@@ -234,7 +239,7 @@ const guides = (() => {
   function clearAll() {
     lines.forEach(g => g.remove());
     lines.length = 0;
-    document.querySelectorAll('.msr-gap-label[data-measure-extension]').forEach(el => el.remove());
+    removeGapLabels();
   }
 
   return { enable, disable, setDirection, setGapVisible, clearAll };
