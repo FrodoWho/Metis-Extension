@@ -3,6 +3,11 @@ const toolbar = (() => {
   let btnMeasure, btnGuides, btnV, btnH, btnGap, rowSub;
   const state = { measure: false, guides: false, direction: 'v', gapVisible: false };
 
+  function getShortcut() {
+    const platform = (navigator.userAgentData?.platform ?? navigator.platform ?? '');
+    return /mac/i.test(platform) ? '⌥⇧M' : 'Alt+Shift+M';
+  }
+
   function buildDOM() {
     if (container) return;
 
@@ -36,6 +41,15 @@ const toolbar = (() => {
     sep1.className = 'msr-tb-sep';
     sep1.setAttribute('data-measure-extension', '');
 
+    const hint = document.createElement('span');
+    hint.className = 'msr-tb-shortcut';
+    hint.setAttribute('data-measure-extension', '');
+    hint.textContent = getShortcut();
+
+    const sep2hint = document.createElement('div');
+    sep2hint.className = 'msr-tb-sep';
+    sep2hint.setAttribute('data-measure-extension', '');
+
     const btnClose = document.createElement('button');
     btnClose.className = 'msr-tb-btn msr-tb-close';
     btnClose.setAttribute('data-measure-extension', '');
@@ -49,6 +63,8 @@ const toolbar = (() => {
     rowMain.appendChild(btnMeasure);
     rowMain.appendChild(btnGuides);
     rowMain.appendChild(sep1);
+    rowMain.appendChild(hint);
+    rowMain.appendChild(sep2hint);
     rowMain.appendChild(btnClose);
 
     // ── Row 2: guides sub-options ─────────────────────────────
