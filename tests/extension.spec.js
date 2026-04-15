@@ -233,3 +233,52 @@ test('panel disappears when measure mode is disabled', async () => {
   await activateTool(worker, page, 'measure', false);
   await expect(page.locator('.msr-panel')).toHaveCount(0);
 });
+
+test('highlight repositions when page is scrolled', async () => {
+  // Make the page tall enough to scroll
+  await page.addStyleTag({ content: 'body { padding-bottom: 2000px; }' });
+
+  await activateTool(worker, page, 'measure', true);
+
+  // Hover over the blue box center (not hard-coded coords that might land on h1)
+  const blueBox = await page.locator('#blue-box').boundingBox();
+  await page.mouse.move(blueBox.x + blueBox.width / 2, blueBox.y + blueBox.height / 2);
+  await page.waitForTimeout(50);
+  await expect(page.locator('.msr-hover-highlight')).toBeVisible();
+
+  const beforeEl = await page.locator('#blue-box').boundingBox();
+
+  // Scroll 80px — moves element up by 80px in the viewport
+  await page.evaluate(() => window.scrollBy(0, 80));
+  await page.waitForTimeout(50);
+
+  const afterHighlight = await page.locator('.msr-hover-highlight').boundingBox();
+  const afterEl        = await page.locator('#blue-box').boundingBox();
+
+  // Element should have moved up in viewport
+  expect(afterEl.y).toBeLessThan(beforeEl.y);
+  // Highlight should match the element's new viewport position
+  expect(afterHighlight.x).toBeCloseTo(afterEl.x, 0);
+  expect(afterHighlight.y).toBeCloseTo(afterEl.y, 0);
+});
+
+test('highlight repositions when viewport is resized', async () => {
+  await activateTool(worker, page, 'measure', true);
+
+  // Hover over the blue box center
+  const blueBox = await page.locator('#blue-box').boundingBox();
+  await page.mouse.move(blueBox.x + blueBox.width / 2, blueBox.y + blueBox.height / 2);
+  await page.waitForTimeout(50);
+  await expect(page.locator('.msr-hover-highlight')).toBeVisible();
+
+  // Resize viewport
+  await page.setViewportSize({ width: 900, height: 700 });
+  await page.waitForTimeout(100);
+
+  const afterHighlight = await page.locator('.msr-hover-highlight').boundingBox();
+  const afterEl        = await page.locator('#blue-box').boundingBox();
+
+  // Highlight position should match the element (width/height differ by the 2px border)
+  expect(afterHighlight.x).toBeCloseTo(afterEl.x, 0);
+  expect(afterHighlight.y).toBeCloseTo(afterEl.y, 0);
+});

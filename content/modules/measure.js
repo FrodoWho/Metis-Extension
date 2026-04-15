@@ -113,7 +113,6 @@ const measure = (() => {
     highlight.style.display = 'none';
     document.body.appendChild(highlight);
     msrOverlay.el.addEventListener('mousemove', onMouseMove);
-    document.documentElement.addEventListener('mouseleave', hideOverlay);
     document.addEventListener('scroll', repositionOverlay, true);
     window.addEventListener('resize', repositionOverlay);
   }
@@ -121,7 +120,6 @@ const measure = (() => {
   function disable() {
     const overlayEl = msrOverlay.el;
     if (overlayEl) overlayEl.removeEventListener('mousemove', onMouseMove);
-    document.documentElement.removeEventListener('mouseleave', hideOverlay);
     document.removeEventListener('scroll', repositionOverlay, true);
     window.removeEventListener('resize', repositionOverlay);
     msrOverlay.setMeasure(false);
