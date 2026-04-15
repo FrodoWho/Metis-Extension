@@ -106,6 +106,15 @@ const toolbar = (() => {
   }
 
   function applyTool(tool, enabled) {
+    if (enabled) {
+      // Measure and guides are mutually exclusive — disable the other first.
+      const other = tool === 'measure' ? 'guides' : 'measure';
+      if (state[other]) {
+        state[other] = false;
+        if (other === 'measure') measure.disable();
+        else                     guides.disable();
+      }
+    }
     state[tool] = enabled;
     if (tool === 'measure') enabled ? measure.enable() : measure.disable();
     if (tool === 'guides')  enabled ? guides.enable()  : guides.disable();

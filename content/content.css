@@ -10,14 +10,43 @@
   pointer-events: all;
 }
 
-/* Hover highlight ring shown while hovering in measure mode */
+/* Hover highlight ring — indigo, shown while hovering in measure mode */
 .msr-hover-highlight {
   position: fixed;
   pointer-events: none;
   border: 2px solid rgba(99, 102, 241, 0.8);
   background: rgba(99, 102, 241, 0.05);
   border-radius: 2px;
-  z-index: 2147483646;
+  z-index: 2147483646; /* above lock rings (2147483645) */
+}
+
+/* Locked measurement ring — orange, persists until clicked again */
+.msr-lock-ring {
+  position: fixed;
+  pointer-events: none;
+  border: 2px solid rgba(251, 146, 60, 0.85);
+  background: rgba(251, 146, 60, 0.06);
+  border-radius: 2px;
+  z-index: 2147483645;
+}
+
+/* Locked panel — same layout as hover panel, with orange title */
+.msr-panel-locked .msr-panel-title { color: rgba(251, 146, 60, 0.9); }
+.msr-panel-locked .msr-panel-key   { color: rgba(251, 146, 60, 0.7); }
+
+/* Snap highlight — shown on the element a guide is snapping to */
+.msr-snap-highlight {
+  position: fixed;
+  pointer-events: none;
+  border: 1px solid rgba(99, 102, 241, 0.45);
+  background: rgba(99, 102, 241, 0.07);
+  border-radius: 2px;
+  z-index: 2147483645;
+}
+
+/* Ghost line is more solid when snapped */
+.msr-guide-ghost.msr-guide-snapped .msr-guide-line {
+  opacity: 0.75;
 }
 
 
