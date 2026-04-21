@@ -33,10 +33,45 @@ async function getTabId(worker, page) {
   return tabId;
 }
 
-async function sendToContent(worker, page, msg) {
+async function ensureInjected(worker, page) {
   const tabId = await getTabId(worker, page);
+  const alreadyInjected = await worker.evaluate(async ({ tabId }) => {
+    try {
+      await chrome.tabs.sendMessage(tabId, { action: '__ping__' });
+      return true;
+    } catch {
+      return false;
+    }
+  }, { tabId });
+  if (alreadyInjected) return tabId;
+
+  // activeTab requires a real user gesture. Press the extension's
+  // keyboard shortcut via the page — that fires _execute_action, which
+  // grants activeTab and lets background.js inject content scripts.
+  await page.bringToFront();
+  await page.keyboard.press('Alt+Shift+M');
+  await page.waitForFunction(
+    () => document.getElementById('msr-toolbar') !== null,
+    null,
+    { timeout: 3000 }
+  );
+  // First press showed the toolbar — press again to hide so tests start clean.
+  await page.keyboard.press('Alt+Shift+M');
+  await page.waitForFunction(
+    () => {
+      const tb = document.getElementById('msr-toolbar');
+      return !tb || tb.style.display === 'none' || !tb.offsetParent;
+    },
+    null,
+    { timeout: 3000 }
+  );
+  return tabId;
+}
+
+async function sendToContent(worker, page, msg) {
+  const tabId = await ensureInjected(worker, page);
   await worker.evaluate(
-    ({ tabId, msg }) => new Promise(resolve => chrome.tabs.sendMessage(tabId, msg, resolve)),
+    ({ tabId, msg }) => chrome.tabs.sendMessage(tabId, msg),
     { tabId, msg }
   );
   await page.waitForTimeout(100);
