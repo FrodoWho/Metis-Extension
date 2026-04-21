@@ -1,0 +1,32 @@
+{
+  "manifest_version": 3,
+  "name": "Metis",
+  "version": "0.1.1",
+  "description": "A lightweight design tool for checking layouts in your browser. Measure elements, drop guides and see gaps.",
+  "commands": {
+    "_execute_action": {
+      "suggested_key": { "default": "Alt+Shift+M", "mac": "Alt+Shift+M" },
+      "description": "Toggle the Measure toolbar"
+    }
+  },
+  "background": { "service_worker": "background.js" },
+  "action": {
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "content_scripts": [{
+    "matches": ["http://*/*", "https://*/*"],
+    "js": [
+      "content/modules/overlay.js",
+      "content/modules/guides.js",
+      "content/modules/measure.js",
+      "content/modules/toolbar.js",
+      "content/content.js"
+    ],
+    "css": ["content/content.css"],
+    "run_at": "document_idle"
+  }]
+}

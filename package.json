@@ -2,8 +2,11 @@
   "name": "measure-extension",
   "private": true,
   "scripts": {
-    "test": "playwright test",
-    "test:headed": "playwright test --headed"
+    "build": "node build.js",
+    "build:chrome": "node build.js --chrome",
+    "build:firefox": "node build.js --firefox",
+    "test": "node build.js --chrome && playwright test",
+    "test:headed": "node build.js --chrome && playwright test --headed"
   },
   "devDependencies": {
     "@playwright/test": "^1.59.1"

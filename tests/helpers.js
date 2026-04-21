@@ -4,7 +4,7 @@
 const { chromium } = require('playwright');
 const path = require('path');
 
-const EXTENSION_PATH = path.resolve(__dirname, '..');
+const EXTENSION_PATH = path.resolve(__dirname, '..', 'dist', 'chrome');
 
 async function launchExtension() {
   const context = await chromium.launchPersistentContext('', {
@@ -23,12 +23,13 @@ async function launchExtension() {
 }
 
 async function getTabId(worker, page) {
-  const url = page.url();
-  const tabId = await worker.evaluate(async (pageUrl) => {
-    const tabs = await new Promise(resolve => chrome.tabs.query({ url: pageUrl }, resolve));
+  const tabId = await worker.evaluate(async () => {
+    const tabs = await new Promise(resolve =>
+      chrome.tabs.query({ active: true, currentWindow: true }, resolve)
+    );
     return tabs[0]?.id ?? null;
-  }, url);
-  if (tabId === null) throw new Error(`Could not find tab for ${url}`);
+  });
+  if (tabId === null) throw new Error(`Could not find active tab for ${page.url()}`);
   return tabId;
 }
 
