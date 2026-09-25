@@ -50,6 +50,12 @@ npm run test:headed   # same, with a visible browser
 
 Requires Chromium (installed by Playwright on first run).
 
+## Release
+
+1. Raise `version` in both `manifests/chrome.json` and `manifests/firefox.json` (the stores reject an equal or lower version)
+2. Run `npm run package`
+3. Upload `dist/metis-chrome.zip` to the Chrome Web Store and `dist/metis-firefox.zip` to addons.mozilla.org
+
 ## Architecture
 
 ```
