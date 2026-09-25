@@ -714,3 +714,21 @@ test('C copies the selected element as CSS', async () => {
   expect(text).toContain('margin: 20px;');
   expect(text).toContain('color: #000000;');
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Measure — WCAG contrast
+// ─────────────────────────────────────────────────────────────────────────────
+
+test('panel shows the WCAG contrast ratio of text', async () => {
+  await page.evaluate(() => document.body.insertAdjacentHTML('beforeend',
+    '<div style="background: rgba(0,0,0,0)"><span id="grey" style="color:#999">Grey text</span></div>'));
+  await activateTool(worker, page, 'measure', true);
+
+  const h1 = await page.locator('h1').boundingBox();
+  await page.mouse.move(h1.x + 20, h1.y + h1.height / 2);
+  await expect(page.locator('.msr-panel')).toContainText('21:1 AAA');
+
+  const grey = await page.locator('#grey').boundingBox();
+  await page.mouse.move(grey.x + 5, grey.y + grey.height / 2);
+  await expect(page.locator('.msr-panel')).toContainText('2.84:1 fail');
+});

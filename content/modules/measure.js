@@ -21,12 +21,62 @@ const measure = (() => {
     return [...el.childNodes].some(n => n.nodeType === Node.TEXT_NODE && n.textContent.trim());
   }
 
+  /** [r, g, b, a] from a computed rgb()/rgba() color, or null for other syntaxes. */
+  function parseRgb(color) {
+    const m = color.match(/^rgba?\((\d+), (\d+), (\d+)(?:, ([\d.]+))?\)$/);
+    return m ? [+m[1], +m[2], +m[3], m[4] === undefined ? 1 : +m[4]] : null;
+  }
+
   /** rgb(a) → #rrggbb (plus alpha %). Other color syntaxes pass through. */
   function toHex(color) {
-    const m = color.match(/^rgba?\((\d+), (\d+), (\d+)(?:, ([\d.]+))?\)$/);
-    if (!m) return color;
-    const hex = '#' + m.slice(1, 4).map(n => Number(n).toString(16).padStart(2, '0')).join('');
-    return m[4] === undefined ? hex : `${hex} ${Math.round(m[4] * 100)}%`;
+    const c = parseRgb(color);
+    if (!c) return color;
+    const hex = '#' + c.slice(0, 3).map(n => n.toString(16).padStart(2, '0')).join('');
+    return c[3] === 1 ? hex : `${hex} ${Math.round(c[3] * 100)}%`;
+  }
+
+  /** Paint color [r, g, b, a] over an opaque [r, g, b]. */
+  function blend([r, g, b, a], [R, G, B]) {
+    return [r * a + R * (1 - a), g * a + G * (1 - a), b * a + B * (1 - a)];
+  }
+
+  /**
+   * The solid color behind el: its own and its ancestors' background colors
+   * composited over white. null if a color can't be parsed.
+   * ponytail: background images and gradients are ignored, so text over a
+   * photo reports the contrast against the color underneath it.
+   */
+  function backdrop(el) {
+    const layers = [];
+    for (let n = el; n; n = n.parentElement ?? n.getRootNode().host) {
+      const c = parseRgb(getComputedStyle(n).backgroundColor);
+      if (!c) return null;
+      if (c[3] > 0) layers.push(c);
+      if (c[3] === 1) break;
+    }
+    return layers.reverse().reduce((under, c) => blend(c, under), [255, 255, 255]);
+  }
+
+  function luminance(rgb) {
+    const [r, g, b] = rgb.map((v) => {
+      v /= 255;
+      return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+    });
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  }
+
+  /** WCAG 2 contrast of the text, e.g. "4.5:1 AA", or null if unknown. */
+  function contrast(el, cs) {
+    const text = parseRgb(cs.color);
+    const back = backdrop(el);
+    if (!text || !back) return null;
+    const [hi, lo] = [luminance(blend(text, back)), luminance(back)].sort((a, b) => b - a);
+    const ratio = (hi + 0.05) / (lo + 0.05);
+    const size  = parseFloat(cs.fontSize);
+    const large = size >= 24 || (size >= 18.66 && Number(cs.fontWeight) >= 700);
+    const grade = ratio >= (large ? 4.5 : 7) ? 'AAA' : ratio >= (large ? 3 : 4.5) ? 'AA' : 'fail';
+    // Floor, so 4.49 never shows as a passing 4.5
+    return `${Math.floor(ratio * 100) / 100}:1 ${grade}`;
   }
 
   /** A px number in the current units. */
@@ -59,6 +109,7 @@ const measure = (() => {
         weight:     cs.fontWeight,
         family:     cs.fontFamily.split(',')[0].trim().replace(/^["']|["']$/g, ''),
         color:      cs.color,
+        contrast:   contrast(el, cs),
       } : null,
     };
   }
@@ -127,6 +178,7 @@ const measure = (() => {
       p.appendChild(panelRow('font', `${len(t.size)} / ${len(t.lineHeight)} · ${t.weight}`));
       p.appendChild(panelRow('family', bm.type.family));
       p.appendChild(panelRow('color', toHex(bm.type.color), bm.type.color));
+      if (t.contrast) p.appendChild(panelRow('ratio', t.contrast));
     }
 
     ui.root.appendChild(p);
