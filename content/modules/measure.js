@@ -1,8 +1,30 @@
 const measure = (() => {
   let highlight = null; // blue hover ring
   let panel     = null; // hover panel
-  let hoverEl   = null;
-  const locks   = [];   // [{ el, ring, panel }]
+  let hoverEl   = null; // selected element (may be an ancestor of pointEl)
+  let pointEl   = null; // deepest element under the cursor
+  const childStack = []; // elements left behind by selectParent()
+  const locks      = []; // [{ el, ring, panel }]
+  const distEls    = []; // distance lines + labels
+
+  function describe(el) {
+    let s = el.tagName.toLowerCase();
+    if (el.id) s += '#' + el.id;
+    if (el.classList[0]) s += '.' + el.classList[0];
+    return s;
+  }
+
+  function hasOwnText(el) {
+    return [...el.childNodes].some(n => n.nodeType === Node.TEXT_NODE && n.textContent.trim());
+  }
+
+  /** rgb(a) → #rrggbb (plus alpha %). Other color syntaxes pass through. */
+  function toHex(color) {
+    const m = color.match(/^rgba?\((\d+), (\d+), (\d+)(?:, ([\d.]+))?\)$/);
+    if (!m) return color;
+    const hex = '#' + m.slice(1, 4).map(n => Number(n).toString(16).padStart(2, '0')).join('');
+    return m[4] === undefined ? hex : `${hex} ${Math.round(m[4] * 100)}%`;
+  }
 
   function getBoxModel(el) {
     const r  = el.getBoundingClientRect();
@@ -14,6 +36,13 @@ const measure = (() => {
       padBottom: cs.paddingBottom, padLeft:  cs.paddingLeft,
       marTop: cs.marginTop,     marRight:    cs.marginRight,
       marBottom: cs.marginBottom, marLeft:   cs.marginLeft,
+      // Typography only where the element renders text itself; on wrappers
+      // it would just echo inherited values.
+      type: hasOwnText(el) ? {
+        font:   `${cs.fontSize} / ${cs.lineHeight} · ${cs.fontWeight}`,
+        family: cs.fontFamily.split(',')[0].trim().replace(/^["']|["']$/g, ''),
+        color:  cs.color,
+      } : null,
     };
   }
 
@@ -23,14 +52,21 @@ const measure = (() => {
     return `${top} ${right} ${bottom} ${left}`;
   }
 
-  function panelRow(key, value) {
+  function panelRow(key, value, swatch) {
     const row = document.createElement('div');
     row.className = 'msr-panel-row';
     const k = document.createElement('span');
     k.className = 'msr-panel-key';
     k.textContent = key;
     const v = document.createElement('span');
-    v.textContent = value;
+    v.className = 'msr-panel-val';
+    if (swatch) {
+      const s = document.createElement('span');
+      s.className = 'msr-swatch';
+      s.style.background = swatch;
+      v.appendChild(s);
+    }
+    v.append(value);
     row.appendChild(k);
     row.appendChild(v);
     return row;
@@ -42,7 +78,8 @@ const measure = (() => {
     return s;
   }
 
-  function buildPanelEl(bm, locked) {
+  function buildPanelEl(el, locked) {
+    const bm  = getBoxModel(el);
     const pad = shorthand(bm.padTop, bm.padRight, bm.padBottom, bm.padLeft);
     const mar = shorthand(bm.marTop, bm.marRight, bm.marBottom, bm.marLeft);
     const p = document.createElement('div');
@@ -53,7 +90,12 @@ const measure = (() => {
     title.className = 'msr-panel-title';
     title.textContent = locked ? 'Locked' : 'Box Model';
 
+    const tag = document.createElement('div');
+    tag.className = 'msr-panel-tag';
+    tag.textContent = describe(el);
+
     p.appendChild(title);
+    p.appendChild(tag);
     p.appendChild(panelRow('w', bm.w + 'px'));
     p.appendChild(panelRow('h', bm.h + 'px'));
     p.appendChild(panelSep());
@@ -62,6 +104,12 @@ const measure = (() => {
     p.appendChild(panelSep());
     p.appendChild(panelRow('x', bm.x + 'px'));
     p.appendChild(panelRow('y', bm.y + 'px'));
+    if (bm.type) {
+      p.appendChild(panelSep());
+      p.appendChild(panelRow('font', bm.type.font));
+      p.appendChild(panelRow('family', bm.type.family));
+      p.appendChild(panelRow('color', toHex(bm.type.color), bm.type.color));
+    }
 
     ui.root.appendChild(p);
     return p;
@@ -71,10 +119,12 @@ const measure = (() => {
     const gap = 8;
     const below = window.innerHeight - (r.top + r.height);
     const left  = Math.min(r.left, window.innerWidth - p.offsetWidth - gap);
+    const top   = below >= p.offsetHeight + gap
+      ? r.top + r.height + gap
+      : r.top - p.offsetHeight - gap;
     p.style.left = Math.max(gap, left) + 'px';
-    p.style.top  = below >= p.offsetHeight + gap
-      ? (r.top + r.height + gap) + 'px'
-      : (r.top - p.offsetHeight - gap) + 'px';
+    // Elements taller than the viewport (body, html) would push it off-screen
+    p.style.top  = Math.max(gap, Math.min(top, window.innerHeight - p.offsetHeight - gap)) + 'px';
   }
 
   // ── Hover overlay ────────────────────────────────────────────
@@ -89,9 +139,104 @@ const measure = (() => {
       height:  r.height + 'px',
     });
     if (panel) { panel.remove(); panel = null; }
-    panel = buildPanelEl(getBoxModel(el), false);
+    panel = buildPanelEl(el, false);
     const p = panel;
     requestAnimationFrame(() => { if (panel === p) positionPanel(p, r); });
+  }
+
+  function select(el) {
+    hoverEl = el;
+    showOverlay(el);
+    renderDistances();
+  }
+
+  /** ↑ — select the parent of the current element. */
+  function selectParent() {
+    const parent = hoverEl?.parentElement;
+    if (!parent) return false;
+    childStack.push(hoverEl);
+    select(parent);
+    return true;
+  }
+
+  /** ↓ — walk back down to the element selectParent() came from. */
+  function selectChild() {
+    if (!childStack.length) return false;
+    select(childStack.pop());
+    return true;
+  }
+
+  // ── Distances ────────────────────────────────────────────────
+
+  function clearDistances() {
+    distEls.forEach(n => n.remove());
+    distEls.length = 0;
+  }
+
+  /** [start, end] of the empty space between two ranges, or null if they overlap. */
+  function gapBetween(a1, a2, b1, b2) {
+    if (b1 >= a2) return [a2, b1];
+    if (a1 >= b2) return [b2, a1];
+    return null;
+  }
+
+  /** Middle of the overlap of two ranges, else the middle of range b. */
+  function crossMid(a1, a2, b1, b2) {
+    const lo = Math.max(a1, b1);
+    const hi = Math.min(a2, b2);
+    return lo < hi ? (lo + hi) / 2 : (b1 + b2) / 2;
+  }
+
+  function addDistance(p1, p2, cross, horizontal) {
+    const start = Math.min(p1, p2);
+    const len   = Math.abs(p2 - p1);
+    if (len < 1) return;
+
+    const line = document.createElement('div');
+    line.className = 'msr-dist-line';
+    Object.assign(line.style, horizontal
+      ? { left: start + 'px', top: cross + 'px', width: len + 'px', height: '1px' }
+      : { left: cross + 'px', top: start + 'px', width: '1px', height: len + 'px' });
+
+    const label = document.createElement('div');
+    label.className = 'msr-dist-label';
+    label.textContent = Math.round(len) + 'px';
+    Object.assign(label.style, horizontal
+      ? { left: (start + len / 2) + 'px', top: cross + 'px' }
+      : { left: cross + 'px', top: (start + len / 2) + 'px' });
+
+    ui.root.append(line, label);
+    distEls.push(line, label);
+  }
+
+  /**
+   * Redlines from the most recently locked element to the hovered one:
+   * the gap between them when they're apart, or the inset of each edge when
+   * one overlaps or contains the other.
+   */
+  function renderDistances() {
+    clearDistances();
+    const anchor = locks[locks.length - 1]?.el;
+    if (!anchor || !hoverEl || anchor === hoverEl) return;
+
+    const a = anchor.getBoundingClientRect();
+    const b = hoverEl.getBoundingClientRect();
+    const midX = crossMid(a.left, a.right, b.left, b.right);
+    const midY = crossMid(a.top, a.bottom, b.top, b.bottom);
+    const gapX = gapBetween(a.left, a.right, b.left, b.right);
+    const gapY = gapBetween(a.top, a.bottom, b.top, b.bottom);
+
+    if (gapX || gapY) {
+      // ponytail: diagonal elements get lines through b's center without
+      // dashed extensions back to a; add those if it reads as confusing.
+      if (gapX) addDistance(gapX[0], gapX[1], midY, true);
+      if (gapY) addDistance(gapY[0], gapY[1], midX, false);
+      return;
+    }
+    addDistance(a.left,   b.left,   midY, true);
+    addDistance(a.right,  b.right,  midY, true);
+    addDistance(a.top,    b.top,    midX, false);
+    addDistance(a.bottom, b.bottom, midX, false);
   }
 
   // ── Lock / unlock ────────────────────────────────────────────
@@ -102,7 +247,6 @@ const measure = (() => {
 
   function lockEl(el) {
     if (isLocked(el)) return;
-    const bm = getBoxModel(el);
     const r  = el.getBoundingClientRect();
 
     const ring = document.createElement('div');
@@ -113,7 +257,7 @@ const measure = (() => {
     });
     ui.root.appendChild(ring);
 
-    const p = buildPanelEl(bm, true);
+    const p = buildPanelEl(el, true);
     requestAnimationFrame(() => positionPanel(p, r));
 
     locks.push({ el, ring, panel: p });
@@ -157,21 +301,27 @@ const measure = (() => {
       });
       positionPanel(lock.panel, r);
     }
+
+    renderDistances();
   }
 
   // ── Event handlers ───────────────────────────────────────────
 
   function onMouseMove(e) {
     const el = ui.elementAt(e.clientX, e.clientY);
-    if (!el || el === hoverEl) return;
-    hoverEl = el;
-    showOverlay(el);
+    // Compare against pointEl, not hoverEl, so a parent chosen with ↑ stays
+    // selected while the cursor wiggles inside the same child.
+    if (!el || el === pointEl) return;
+    pointEl = el;
+    childStack.length = 0;
+    select(el);
   }
 
   function onClick(e) {
-    const el = ui.elementAt(e.clientX, e.clientY);
-    if (!el) return;
-    isLocked(el) ? unlockEl(el) : lockEl(el);
+    onMouseMove(e);
+    if (!hoverEl) return;
+    isLocked(hoverEl) ? unlockEl(hoverEl) : lockEl(hoverEl);
+    renderDistances();
   }
 
   // ── Public API ───────────────────────────────────────────────
@@ -202,8 +352,11 @@ const measure = (() => {
     if (panel)     { panel.remove();     panel     = null; }
     locks.forEach(({ ring, panel: p }) => { ring.remove(); p.remove(); });
     locks.length = 0;
+    clearDistances();
     hoverEl = null;
+    pointEl = null;
+    childStack.length = 0;
   }
 
-  return { enable, disable };
+  return { enable, disable, selectParent, selectChild };
 })();

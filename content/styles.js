@@ -55,6 +55,28 @@ const MSR_CSS = `
   opacity: 0.75;
 }
 
+/* Distance between the last locked element and the hovered one */
+.msr-dist-line {
+  position: fixed;
+  background: rgba(244, 63, 94, 0.9);
+  pointer-events: none;
+  z-index: 2147483646;
+}
+
+.msr-dist-label {
+  position: fixed;
+  background: rgba(244, 63, 94, 0.95);
+  color: #fff;
+  font-family: 'SF Mono', 'Menlo', 'Consolas', monospace;
+  font-size: 9px;
+  padding: 2px 4px;
+  border-radius: 2px;
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 2147483647;
+  transform: translate(-50%, -50%);
+}
+
 
 /* Box model panel */
 .msr-panel {
@@ -76,8 +98,16 @@ const MSR_CSS = `
   font-size: 9px;
   letter-spacing: 0.08em;
   color: #555;
-  margin-bottom: 6px;
   text-transform: uppercase;
+}
+
+/* Which element is selected (tag#id.class) */
+.msr-panel-tag {
+  color: #999;
+  margin-bottom: 6px;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .msr-panel-row {
@@ -86,7 +116,22 @@ const MSR_CSS = `
   gap: 0 8px;
 }
 
+.msr-panel-val {
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .msr-panel-key { color: #6366f1; }
+
+.msr-swatch {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 5px;
+  border-radius: 2px;
+  box-shadow: 0 0 0 1px #444;
+}
 
 .msr-panel-sep {
   height: 1px;
@@ -274,5 +319,4 @@ const MSR_CSS = `
   margin: 0 2px;
   flex-shrink: 0;
 }
-
 `;

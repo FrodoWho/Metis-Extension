@@ -421,3 +421,49 @@ test('page CSS cannot restyle the toolbar (shadow DOM)', async () => {
   await toggleToolbar(worker, page);
   await expect(page.locator('.msr-tb-btn', { hasText: 'Measure' })).toBeVisible();
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Measure — distances, typography
+// ─────────────────────────────────────────────────────────────────────────────
+
+test('with an element locked, hovering another shows the distance between them', async () => {
+  await activateTool(worker, page, 'measure', true);
+
+  const blue = await page.locator('#blue-box').boundingBox();
+  await page.mouse.click(blue.x + blue.width / 2, blue.y + blue.height / 2);
+  const red = await page.locator('#red-box').boundingBox();
+  await page.mouse.move(red.x + red.width / 2, red.y + red.height / 2);
+
+  // Collapsed 20px margins between the two boxes
+  await expect(page.locator('.msr-dist-label')).toHaveText('20px');
+});
+
+test('hovering a child of the locked element shows its insets', async () => {
+  await page.evaluate(() => {
+    const child = document.createElement('span');
+    child.id = 'inner';
+    child.style.cssText = 'display:block; width:50px; height:20px; background:#000;';
+    document.getElementById('blue-box').appendChild(child);
+  });
+  await activateTool(worker, page, 'measure', true);
+
+  const blue = await page.locator('#blue-box').boundingBox();
+  await page.mouse.click(blue.x + blue.width - 10, blue.y + blue.height - 10);
+  const inner = await page.locator('#inner').boundingBox();
+  await page.mouse.move(inner.x + 10, inner.y + 10);
+
+  // Left inset = 16px padding; right = 232 - 16 - 50 = 166px
+  await expect(page.locator('.msr-dist-label', { hasText: /^16px$/ })).toHaveCount(1);
+  await expect(page.locator('.msr-dist-label', { hasText: /^166px$/ })).toHaveCount(1);
+});
+
+test('panel shows typography for elements with their own text', async () => {
+  await activateTool(worker, page, 'measure', true);
+  const h1 = await page.locator('h1').boundingBox();
+  await page.mouse.move(h1.x + 20, h1.y + h1.height / 2);
+
+  const p = page.locator('.msr-panel');
+  await expect(p).toContainText('32px');
+  await expect(p).toContainText('sans-serif');
+  await expect(p).toContainText('#000000');
+});
