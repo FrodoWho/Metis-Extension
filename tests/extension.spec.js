@@ -612,3 +612,24 @@ test('arrow up selects the parent, arrow down goes back to the child', async () 
   await page.keyboard.press('ArrowDown');
   await expect(page.locator('.msr-panel-tag')).toHaveText('div#blue-box.box');
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Modal dialogs (everything outside them is inert)
+// ─────────────────────────────────────────────────────────────────────────────
+
+test('toolbar and measuring work while a modal dialog is open', async () => {
+  await page.evaluate(() => {
+    document.body.insertAdjacentHTML('beforeend', '<dialog id="d"><p id="inside">Inside dialog</p></dialog>');
+    document.getElementById('d').showModal();
+  });
+  await toggleToolbar(worker, page);
+  await page.locator('.msr-tb-btn', { hasText: 'Measure' }).click({ timeout: 2000 });
+
+  const bb = await page.locator('#inside').boundingBox();
+  await page.mouse.move(bb.x + 5, bb.y + 5);
+  await expect(page.locator('.msr-panel-tag')).toHaveText('p#inside');
+
+  // Back on <html> once the dialog closes
+  await page.evaluate(() => document.getElementById('d').close());
+  await expect.poll(() => page.evaluate(() => document.querySelector('metis-root').parentNode.nodeName)).toBe('HTML');
+});

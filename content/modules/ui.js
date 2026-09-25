@@ -7,6 +7,17 @@ const ui = (() => {
   let host = null;
   let root = null;
 
+  /**
+   * A modal <dialog> makes everything outside it inert (no clicks, no hit
+   * testing), so live inside the topmost one while it's open.
+   * ponytail: "topmost" = last in DOM order; stacked modals opened out of
+   * DOM order would pick the wrong one.
+   */
+  function home() {
+    const modals = document.querySelectorAll('dialog:modal');
+    return modals[modals.length - 1] ?? document.documentElement;
+  }
+
   function ensure() {
     if (!host) {
       host = document.createElement('metis-root');
@@ -14,9 +25,14 @@ const ui = (() => {
       const style = document.createElement('style');
       style.textContent = MSR_CSS;
       root.appendChild(style);
+      new MutationObserver(ensure).observe(document.documentElement, {
+        subtree: true, childList: true, attributes: true, attributeFilter: ['open'],
+      });
     }
-    // Re-attach (keeping all UI) if the page wiped it out.
-    if (!host.isConnected) document.documentElement.appendChild(host);
+    // (Re-)attach, keeping all UI, when the page wiped it out or a modal
+    // dialog opened or closed.
+    const parent = home();
+    if (host.parentNode !== parent) parent.appendChild(host);
   }
 
   /** Topmost page element at (x, y), looking through all extension UI. */
