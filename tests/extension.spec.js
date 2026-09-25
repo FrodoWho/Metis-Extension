@@ -511,3 +511,104 @@ test('dragging a guide moves it', async () => {
   expect(await guide.evaluate(el => el.style.left)).toBe('450px');
   await expect(page.locator('.msr-guide-label')).toHaveText('450px');
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Toolbar — dragging (content behind the toolbar must stay reachable)
+// ─────────────────────────────────────────────────────────────────────────────
+
+test('dragging the grip moves the toolbar so what was behind it can be measured', async () => {
+  await toggleToolbar(worker, page);
+  const before = await page.locator('#msr-toolbar').boundingBox();
+  const grip   = await page.locator('.msr-tb-grip').boundingBox();
+
+  await page.mouse.move(grip.x + grip.width / 2, grip.y + grip.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(600, 500, { steps: 5 });
+  await page.mouse.up();
+
+  const after = await page.locator('#msr-toolbar').boundingBox();
+  expect(after.x).toBeGreaterThan(before.x + 300);
+  expect(after.y).toBeGreaterThan(before.y + 300);
+
+  await page.locator('.msr-tb-btn', { hasText: 'Measure' }).click();
+  await page.mouse.move(before.x + 20, before.y + 10);
+  await expect(page.locator('.msr-panel-tag')).toHaveText('html');
+});
+
+test('double-clicking the grip puts the toolbar back in the corner', async () => {
+  await toggleToolbar(worker, page);
+  const home = await page.locator('#msr-toolbar').boundingBox();
+  const grip = await page.locator('.msr-tb-grip').boundingBox();
+
+  await page.mouse.move(grip.x + 4, grip.y + 4);
+  await page.mouse.down();
+  await page.mouse.move(500, 400, { steps: 5 });
+  await page.mouse.up();
+  await page.locator('.msr-tb-grip').dblclick();
+
+  const after = await page.locator('#msr-toolbar').boundingBox();
+  expect(after.x).toBeCloseTo(home.x, 0);
+  expect(after.y).toBeCloseTo(home.y, 0);
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Keyboard shortcuts
+// ─────────────────────────────────────────────────────────────────────────────
+
+test('M and G switch tools, Escape turns the tool off and then closes the toolbar', async () => {
+  await toggleToolbar(worker, page);
+
+  await page.keyboard.press('m');
+  await expect(page.locator('.msr-hover-highlight')).toHaveCount(1);
+  await page.keyboard.press('g');
+  await expect(page.locator('.msr-hover-highlight')).toHaveCount(0);
+  await expect(page.locator('.msr-tb-row-sub')).toBeVisible();
+
+  await page.keyboard.press('Escape');
+  await expect(page.locator('.msr-tb-row-sub')).toBeHidden();
+  await expect(page.locator('#msr-toolbar')).toBeVisible();
+
+  await page.keyboard.press('Escape');
+  await expect(page.locator('#msr-toolbar')).toBeHidden();
+});
+
+test('shortcuts are ignored while typing in a page input', async () => {
+  await page.evaluate(() => document.body.insertAdjacentHTML('afterbegin', '<input id="q">'));
+  await toggleToolbar(worker, page);
+  await page.locator('#q').focus();
+  await page.keyboard.type('mg');
+
+  await expect(page.locator('#q')).toHaveValue('mg');
+  await expect(page.locator('.msr-hover-highlight')).toHaveCount(0);
+});
+
+test('arrow keys nudge the last guide, Shift for 10px', async () => {
+  await toggleToolbar(worker, page);
+  await page.keyboard.press('g');
+  await page.mouse.click(400, 300, { modifiers: ['Shift'] });
+  const guide = page.locator('.msr-guide:not(.msr-guide-ghost)');
+
+  await page.keyboard.press('ArrowRight');
+  expect(await guide.evaluate(el => el.style.left)).toBe('401px');
+  await page.keyboard.press('Shift+ArrowLeft');
+  expect(await guide.evaluate(el => el.style.left)).toBe('391px');
+});
+
+test('arrow up selects the parent, arrow down goes back to the child', async () => {
+  await toggleToolbar(worker, page);
+  await page.keyboard.press('m');
+
+  const bb = await page.locator('#blue-box').boundingBox();
+  await page.mouse.move(bb.x + bb.width / 2, bb.y + bb.height / 2);
+  await expect(page.locator('.msr-panel-tag')).toHaveText('div#blue-box.box');
+
+  await page.keyboard.press('ArrowUp');
+  await expect(page.locator('.msr-panel-tag')).toHaveText('body');
+
+  // Small wiggle inside the same child keeps the parent selected
+  await page.mouse.move(bb.x + bb.width / 2 + 3, bb.y + bb.height / 2);
+  await expect(page.locator('.msr-panel-tag')).toHaveText('body');
+
+  await page.keyboard.press('ArrowDown');
+  await expect(page.locator('.msr-panel-tag')).toHaveText('div#blue-box.box');
+});

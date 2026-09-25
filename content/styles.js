@@ -248,7 +248,7 @@ const MSR_CSS = `
 #msr-toolbar {
   position: fixed;
   top: 12px;
-  inset-inline-start: 12px;
+  left: 12px;
   z-index: 2147483647;
   display: flex;
   flex-direction: column;
@@ -280,6 +280,19 @@ const MSR_CSS = `
 
 .msr-tb-row-sub.msr-tb-hidden { display: none; }
 
+/* Drag handle — move the toolbar off whatever you want to measure */
+.msr-tb-grip {
+  color: #555;
+  font-size: 12px;
+  line-height: 1;
+  padding: 5px 4px;
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+}
+.msr-tb-grip:hover  { color: #999; }
+.msr-tb-grip:active { cursor: grabbing; }
+
 .msr-tb-btn {
   background: transparent;
   border: none;
@@ -298,6 +311,8 @@ const MSR_CSS = `
 }
 
 .msr-tb-btn:hover { background: #2a2a2a; color: #ccc; }
+
+.msr-tb-btn:focus-visible { outline: 2px solid #6366f1; outline-offset: 1px; }
 
 .msr-tb-btn.msr-tb-btn-active { background: #6366f1; color: #fff; }
 
