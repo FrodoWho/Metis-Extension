@@ -52,10 +52,44 @@ const ui = (() => {
     },
   };
 
+  /** Write text to the clipboard; resolves to whether it worked. */
+  async function copy(text) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch {
+      // No async clipboard on insecure (http) pages: fall back to execCommand
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      root.appendChild(ta);
+      ta.select();
+      const ok = document.execCommand('copy');
+      ta.remove();
+      return ok;
+    }
+  }
+
+  let toastTimer = null;
+  function toast(text) {
+    ensure();
+    let t = root.querySelector('.msr-toast');
+    if (!t) {
+      t = document.createElement('div');
+      t.className = 'msr-toast';
+      t.setAttribute('role', 'status');
+      root.appendChild(t);
+    }
+    t.textContent = text;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.remove(), 1500);
+  }
+
   return {
     get root() { ensure(); return root; },
     get host() { ensure(); return host; },
     elementAt,
     store,
+    copy,
+    toast,
   };
 })();

@@ -257,6 +257,23 @@ const MSR_CSS = `
   transform: translate(-50%, -50%);
 }
 
+/* Short confirmation, e.g. after copying CSS */
+.msr-toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #111;
+  color: #e0e0e0;
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 11px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  pointer-events: none;
+  z-index: 2147483647;
+}
+
 /* ── In-page toolbar ─────────────────────────────────────────── */
 #msr-toolbar {
   position: fixed;

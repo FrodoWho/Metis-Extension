@@ -8,6 +8,7 @@ const measure = (() => {
   const childStack = []; // elements left behind by selectParent()
   const locks      = []; // [{ el, ring, panel }]
   const distEls    = []; // distance lines + labels
+  let units = 'px';      // 'px' | 'rem' for lengths in the panel and copied CSS
 
   function describe(el) {
     let s = el.tagName.toLowerCase();
@@ -28,6 +29,18 @@ const measure = (() => {
     return m[4] === undefined ? hex : `${hex} ${Math.round(m[4] * 100)}%`;
   }
 
+  /** A px number in the current units. */
+  function fmt(px) {
+    if (units === 'px') return Math.round(px * 100) / 100 + 'px';
+    const base = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+    return Math.round(px / base * 1000) / 1000 + 'rem';
+  }
+
+  /** A computed CSS length ("16px") in the current units; keywords pass through. */
+  function len(value) {
+    return value.endsWith('px') ? fmt(parseFloat(value)) : value;
+  }
+
   function getBoxModel(el) {
     const r  = el.getBoundingClientRect();
     const cs = getComputedStyle(el);
@@ -41,9 +54,11 @@ const measure = (() => {
       // Typography only where the element renders text itself; on wrappers
       // it would just echo inherited values.
       type: hasOwnText(el) ? {
-        font:   `${cs.fontSize} / ${cs.lineHeight} · ${cs.fontWeight}`,
-        family: cs.fontFamily.split(',')[0].trim().replace(/^["']|["']$/g, ''),
-        color:  cs.color,
+        size:       cs.fontSize,
+        lineHeight: cs.lineHeight,
+        weight:     cs.fontWeight,
+        family:     cs.fontFamily.split(',')[0].trim().replace(/^["']|["']$/g, ''),
+        color:      cs.color,
       } : null,
     };
   }
@@ -82,8 +97,8 @@ const measure = (() => {
 
   function buildPanelEl(el, locked) {
     const bm  = getBoxModel(el);
-    const pad = shorthand(bm.padTop, bm.padRight, bm.padBottom, bm.padLeft);
-    const mar = shorthand(bm.marTop, bm.marRight, bm.marBottom, bm.marLeft);
+    const pad = shorthand(len(bm.padTop), len(bm.padRight), len(bm.padBottom), len(bm.padLeft));
+    const mar = shorthand(len(bm.marTop), len(bm.marRight), len(bm.marBottom), len(bm.marLeft));
     const p = document.createElement('div');
     p.classList.add('msr-panel');
     if (locked) p.classList.add('msr-panel-locked');
@@ -98,8 +113,8 @@ const measure = (() => {
 
     p.appendChild(title);
     p.appendChild(tag);
-    p.appendChild(panelRow('w', bm.w + 'px'));
-    p.appendChild(panelRow('h', bm.h + 'px'));
+    p.appendChild(panelRow('w', fmt(bm.w)));
+    p.appendChild(panelRow('h', fmt(bm.h)));
     p.appendChild(panelSep());
     p.appendChild(panelRow('pad', pad));
     p.appendChild(panelRow('mar', mar));
@@ -108,7 +123,8 @@ const measure = (() => {
     p.appendChild(panelRow('y', bm.y + 'px'));
     if (bm.type) {
       p.appendChild(panelSep());
-      p.appendChild(panelRow('font', bm.type.font));
+      const t = bm.type;
+      p.appendChild(panelRow('font', `${len(t.size)} / ${len(t.lineHeight)} · ${t.weight}`));
       p.appendChild(panelRow('family', bm.type.family));
       p.appendChild(panelRow('color', toHex(bm.type.color), bm.type.color));
     }
@@ -337,6 +353,53 @@ const measure = (() => {
     renderDistances();
   }
 
+  // ── Units / copy ─────────────────────────────────────────────
+
+  function setUnits(u) {
+    units = u;
+    if (hoverEl && highlight) showOverlay(hoverEl);
+    for (const lock of locks) {
+      const r = lock.el.getBoundingClientRect();
+      lock.panel.remove();
+      lock.panel = buildPanelEl(lock.el, true);
+      positionPanel(lock.panel, r);
+    }
+  }
+
+  /** The selected element's size, spacing and type as CSS declarations. */
+  function cssText(el) {
+    const cs = getComputedStyle(el);
+    const r  = el.getBoundingClientRect();
+    const size = (v, px) => (v === 'auto' ? fmt(px) : len(v));
+    const out = [
+      `width: ${size(cs.width, r.width)};`,
+      `height: ${size(cs.height, r.height)};`,
+    ];
+    if (cs.boxSizing === 'border-box') out.push('box-sizing: border-box;');
+    out.push(
+      `padding: ${shorthand(len(cs.paddingTop), len(cs.paddingRight), len(cs.paddingBottom), len(cs.paddingLeft))};`,
+      `margin: ${shorthand(len(cs.marginTop), len(cs.marginRight), len(cs.marginBottom), len(cs.marginLeft))};`,
+    );
+    const t = getBoxModel(el).type;
+    if (t) {
+      out.push(
+        `font-size: ${len(t.size)};`,
+        `line-height: ${len(t.lineHeight)};`,
+        `font-weight: ${t.weight};`,
+        `font-family: ${cs.fontFamily};`,
+        `color: ${toHex(t.color).split(' ')[0]};`,
+      );
+    }
+    return out.join('\n');
+  }
+
+  /** C — copy the selected element as CSS. */
+  function copyCss() {
+    if (!hoverEl) return false;
+    ui.copy(cssText(hoverEl)).then(ok => ui.toast(ok ? 'CSS copied' : 'Copy failed'));
+    return true;
+  }
+
   // ── Public API ───────────────────────────────────────────────
 
   function enable() {
@@ -377,5 +440,5 @@ const measure = (() => {
     childStack.length = 0;
   }
 
-  return { enable, disable, selectParent, selectChild };
+  return { enable, disable, selectParent, selectChild, setUnits, copyCss };
 })();

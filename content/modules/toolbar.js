@@ -1,8 +1,9 @@
 const toolbar = (() => {
   let container = null;
-  let btnMeasure, btnGuides, btnV, btnH, btnGap, btnCollapse, rowSub;
+  let btnMeasure, btnGuides, btnV, btnH, btnGap, btnPx, btnRem, btnCollapse;
+  let rowMeasure, rowGuides;
   const state = { measure: false, guides: false, direction: 'v', gapVisible: false };
-  const prefs = { left: null, top: null, collapsed: false }; // remembered across pages
+  const prefs = { left: null, top: null, collapsed: false, units: 'px' }; // remembered across pages
 
   function getShortcut() {
     const platform = (navigator.userAgentData?.platform ?? navigator.platform ?? '');
@@ -24,7 +25,7 @@ const toolbar = (() => {
     b.setAttribute('aria-label', label);
     b.title = key ? `${label} (${key})` : label;
     if (key) b.setAttribute('aria-keyshortcuts', key);
-    if (pressed !== undefined) b.setAttribute('aria-pressed', String(pressed));
+    if (pressed !== undefined) setPressed(b, pressed);
     b.addEventListener('click', onClick);
     return b;
   }
@@ -62,23 +63,32 @@ const toolbar = (() => {
       { className: 'msr-tb-collapse' });
     button(rowMain, '✕', 'Close toolbar', hide, { key: 'Escape', className: 'msr-tb-close' });
 
-    // ── Row 2: guides sub-options ─────────────────────────────
-    rowSub = el('div', 'msr-tb-row-sub msr-tb-hidden', container);
+    // ── Measure sub-options ───────────────────────────────────
+    rowMeasure = el('div', 'msr-tb-row-sub msr-tb-hidden', container);
+    rowMeasure.id = 'msr-tb-row-measure';
 
-    btnV = button(rowSub, 'V', 'Vertical guides', () => setDirection('v'), { key: 'V', pressed: true });
+    btnPx  = button(rowMeasure, 'px',  'Show lengths in px',  () => setUnits('px'),  { pressed: true });
+    btnRem = button(rowMeasure, 'rem', 'Show lengths in rem', () => setUnits('rem'), { pressed: false });
+    el('div', 'msr-tb-sep', rowMeasure);
+    button(rowMeasure, 'Copy CSS', 'Copy CSS of the selected element', () => measure.copyCss(), { key: 'C' });
+
+    // ── Guides sub-options ────────────────────────────────────
+    rowGuides = el('div', 'msr-tb-row-sub msr-tb-hidden', container);
+    rowGuides.id = 'msr-tb-row-guides';
+
+    btnV = button(rowGuides, 'V', 'Vertical guides', () => setDirection('v'), { key: 'V', pressed: true });
     btnV.id = 'msr-tb-v';
-    btnV.classList.add('msr-tb-btn-active'); // V is default
-    btnH = button(rowSub, 'H', 'Horizontal guides', () => setDirection('h'), { key: 'H', pressed: false });
+    btnH = button(rowGuides, 'H', 'Horizontal guides', () => setDirection('h'), { key: 'H', pressed: false });
     btnH.id = 'msr-tb-h';
-    el('div', 'msr-tb-sep', rowSub);
-    btnGap = button(rowSub, 'Gap', 'Toggle gap labels', () => {
+    el('div', 'msr-tb-sep', rowGuides);
+    btnGap = button(rowGuides, 'Gap', 'Toggle gap labels', () => {
       state.gapVisible = !state.gapVisible;
       guides.setGapVisible(state.gapVisible);
       setPressed(btnGap, state.gapVisible);
     }, { pressed: false });
     btnGap.id = 'msr-tb-gap';
-    el('div', 'msr-tb-sep', rowSub);
-    button(rowSub, 'Clear', 'Clear all guides', () => guides.clearAll()).id = 'msr-tb-clear';
+    el('div', 'msr-tb-sep', rowGuides);
+    button(rowGuides, 'Clear', 'Clear all guides', () => guides.clearAll()).id = 'msr-tb-clear';
 
     ui.root.appendChild(container);
     window.addEventListener('resize', clamp);
@@ -86,8 +96,17 @@ const toolbar = (() => {
     ui.store.get('toolbar', prefs).then((saved) => {
       Object.assign(prefs, saved);
       setCollapsed(prefs.collapsed);
+      setUnits(prefs.units);
       if (prefs.left !== null) moveTo(prefs.left, prefs.top);
     });
+  }
+
+  function setUnits(u) {
+    prefs.units = u;
+    measure.setUnits(u);
+    setPressed(btnPx,  u === 'px');
+    setPressed(btnRem, u === 'rem');
+    persist();
   }
 
   function persist() { ui.store.set('toolbar', prefs); }
@@ -172,8 +191,9 @@ const toolbar = (() => {
   function updateUI() {
     setPressed(btnMeasure, state.measure);
     setPressed(btnGuides, state.guides);
-    rowSub.classList.toggle('msr-tb-hidden', !state.guides);
-    clamp(); // the sub-row changes the toolbar's height
+    rowMeasure.classList.toggle('msr-tb-hidden', !state.measure);
+    rowGuides.classList.toggle('msr-tb-hidden', !state.guides);
+    clamp(); // sub-rows change the toolbar's height
   }
 
   // ── Keyboard ─────────────────────────────────────────────────
@@ -205,6 +225,7 @@ const toolbar = (() => {
     if (state.measure) {
       if (key === 'ArrowUp')   return measure.selectParent();
       if (key === 'ArrowDown') return measure.selectChild();
+      if (key === 'c')         return measure.copyCss();
     }
     return false;
   }

@@ -66,10 +66,10 @@ test('close button (✕) hides the toolbar and disables all tools', async () => 
 
 test('Guides sub-row (V/H/Gap) appears only when Guides is active', async () => {
   await toggleToolbar(worker, page);
-  await expect(page.locator('.msr-tb-row-sub')).toBeHidden();
+  await expect(page.locator('#msr-tb-row-guides')).toBeHidden();
 
   await page.locator('.msr-tb-btn', { hasText: 'Guides' }).click();
-  await expect(page.locator('.msr-tb-row-sub')).toBeVisible();
+  await expect(page.locator('#msr-tb-row-guides')).toBeVisible();
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -562,10 +562,10 @@ test('M and G switch tools, Escape turns the tool off and then closes the toolba
   await expect(page.locator('.msr-hover-highlight')).toHaveCount(1);
   await page.keyboard.press('g');
   await expect(page.locator('.msr-hover-highlight')).toHaveCount(0);
-  await expect(page.locator('.msr-tb-row-sub')).toBeVisible();
+  await expect(page.locator('#msr-tb-row-guides')).toBeVisible();
 
   await page.keyboard.press('Escape');
-  await expect(page.locator('.msr-tb-row-sub')).toBeHidden();
+  await expect(page.locator('#msr-tb-row-guides')).toBeHidden();
   await expect(page.locator('#msr-toolbar')).toBeVisible();
 
   await page.keyboard.press('Escape');
@@ -681,4 +681,36 @@ test('hovering shades the margin and padding bands', async () => {
   expect(margin.width).toBeCloseTo(bb.width + 40, 0);
   expect(pad.x).toBeCloseTo(bb.x, 0);
   expect(await page.locator('.msr-padding-box').evaluate(el => el.style.borderWidth)).toBe('16px');
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Measure — units and copy CSS
+// ─────────────────────────────────────────────────────────────────────────────
+
+test('rem toggle converts panel lengths', async () => {
+  await toggleToolbar(worker, page);
+  await page.keyboard.press('m');
+  await page.locator('#msr-tb-row-measure .msr-tb-btn', { hasText: 'rem' }).click();
+
+  const bb = await page.locator('#blue-box').boundingBox();
+  await page.mouse.move(bb.x + bb.width / 2, bb.y + bb.height / 2);
+  await expect(page.locator('.msr-panel')).toContainText('14.5rem'); // 232px wide
+  await expect(page.locator('.msr-panel')).toContainText('1rem');    // 16px padding
+});
+
+test('C copies the selected element as CSS', async () => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write'], { origin: 'http://localhost:4321' });
+  await toggleToolbar(worker, page);
+  await page.keyboard.press('m');
+
+  const bb = await page.locator('#blue-box').boundingBox();
+  await page.mouse.move(bb.x + bb.width / 2, bb.y + bb.height / 2);
+  await page.keyboard.press('c');
+  await expect(page.locator('.msr-toast')).toHaveText('CSS copied');
+
+  const text = await page.evaluate(() => navigator.clipboard.readText());
+  expect(text).toContain('width: 200px;');
+  expect(text).toContain('padding: 16px;');
+  expect(text).toContain('margin: 20px;');
+  expect(text).toContain('color: #000000;');
 });
