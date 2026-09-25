@@ -1,9 +1,11 @@
 const toolbar = (() => {
   let container = null;
-  let btnMeasure, btnGuides, btnV, btnH, btnGap, btnPx, btnRem, btnCollapse;
-  let rowMeasure, rowGuides, viewport;
-  const state = { measure: false, guides: false, direction: 'v', gapVisible: false };
-  const prefs = { left: null, top: null, collapsed: false, units: 'px' }; // remembered across pages
+  let btnMeasure, btnGuides, btnGrid, btnV, btnH, btnGap, btnPx, btnRem, btnCollapse;
+  let rowMeasure, rowGuides, rowGrid, viewport;
+  const gridInputs = {};
+  const state = { measure: false, guides: false, grid: false, direction: 'v', gapVisible: false };
+  // Remembered across pages
+  const prefs = { left: null, top: null, collapsed: false, units: 'px', grid: { ...grid.settings } };
 
   function getShortcut() {
     const platform = (navigator.userAgentData?.platform ?? navigator.platform ?? '');
@@ -35,6 +37,23 @@ const toolbar = (() => {
     b.setAttribute('aria-pressed', String(on));
   }
 
+  /** Number input for one grid setting; out-of-range values are ignored. */
+  function gridField(parent, label, title, key, min, max) {
+    const wrap = el('label', 'msr-tb-field', parent);
+    wrap.title = title;
+    wrap.append(label);
+    const input = el('input', 'msr-tb-input', wrap);
+    Object.assign(input, { type: 'number', min, max, value: grid.settings[key] });
+    input.addEventListener('input', () => {
+      const v = Number(input.value);
+      if (input.value === '' || !Number.isInteger(v) || v < min || v > max) return;
+      prefs.grid[key] = v;
+      grid.set({ [key]: v });
+      persist();
+    });
+    gridInputs[key] = input;
+  }
+
   function buildDOM() {
     if (container) return;
 
@@ -54,6 +73,8 @@ const toolbar = (() => {
       () => applyTool('measure', !state.measure), { key: 'M', pressed: false });
     btnGuides = button(rowMain, '📏 Guides', 'Guides tool',
       () => applyTool('guides', !state.guides), { key: 'G', pressed: false });
+    btnGrid = button(rowMain, '▦ Grid', 'Layout grid',
+      () => setGrid(!state.grid), { key: 'L', pressed: false });
     el('div', 'msr-tb-sep', rowMain);
     viewport = el('span', 'msr-tb-viewport', rowMain);
     viewport.title = 'Viewport size (what media queries see)';
@@ -92,6 +113,15 @@ const toolbar = (() => {
     el('div', 'msr-tb-sep', rowGuides);
     button(rowGuides, 'Clear', 'Clear all guides', () => guides.clearAll()).id = 'msr-tb-clear';
 
+    // ── Grid settings ─────────────────────────────────────────
+    rowGrid = el('div', 'msr-tb-row-sub msr-tb-hidden', container);
+    rowGrid.id = 'msr-tb-row-grid';
+
+    gridField(rowGrid, 'Cols',   'Number of columns', 'columns', 1, 48);
+    gridField(rowGrid, 'Gutter', 'Space between columns (px)', 'gutter', 0, 500);
+    gridField(rowGrid, 'Max',    'Maximum container width incl. margins (px), 0 = none', 'maxWidth', 0, 10000);
+    gridField(rowGrid, 'Margin', 'Space left and right of the columns (px)', 'margin', 0, 500);
+
     ui.root.appendChild(container);
     window.addEventListener('resize', () => { clamp(); showViewport(); });
 
@@ -99,6 +129,8 @@ const toolbar = (() => {
       Object.assign(prefs, saved);
       setCollapsed(prefs.collapsed);
       setUnits(prefs.units);
+      grid.set(prefs.grid);
+      for (const [key, input] of Object.entries(gridInputs)) input.value = prefs.grid[key];
       if (prefs.left !== null) moveTo(prefs.left, prefs.top);
     });
   }
@@ -194,11 +226,21 @@ const toolbar = (() => {
     updateUI();
   }
 
+  /** The grid is a visual layer, so it combines with either tool. */
+  function setGrid(on) {
+    state.grid = on;
+    if (on) grid.show();
+    else    grid.hide();
+    updateUI();
+  }
+
   function updateUI() {
     setPressed(btnMeasure, state.measure);
     setPressed(btnGuides, state.guides);
+    setPressed(btnGrid, state.grid);
     rowMeasure.classList.toggle('msr-tb-hidden', !state.measure);
     rowGuides.classList.toggle('msr-tb-hidden', !state.guides);
+    rowGrid.classList.toggle('msr-tb-hidden', !state.grid);
     clamp(); // sub-rows change the toolbar's height
   }
 
@@ -219,6 +261,7 @@ const toolbar = (() => {
     }
     if (key === 'm') { applyTool('measure', !state.measure); return true; }
     if (key === 'g') { applyTool('guides',  !state.guides);  return true; }
+    if (key === 'l') { setGrid(!state.grid); return true; }
 
     if (state.guides) {
       if (key === 'v' || key === 'h') { setDirection(key); return true; }
@@ -237,7 +280,12 @@ const toolbar = (() => {
   }
 
   function onKeyDown(e) {
-    if (e.ctrlKey || e.metaKey || e.altKey || isTyping(e)) return;
+    if (isTyping(e)) {
+      // Typing in our own fields: don't let the page's shortcuts see it
+      if (e.composedPath().includes(ui.host)) e.stopPropagation();
+      return;
+    }
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
     const key = e.key.length === 1 ? e.key.toLowerCase() : e.key;
     if (handleKey(key, e.shiftKey)) {
       e.preventDefault();
@@ -256,6 +304,7 @@ const toolbar = (() => {
   function hide() {
     if (state.measure) applyTool('measure', false);
     if (state.guides)  applyTool('guides',  false);
+    if (state.grid)    setGrid(false);
     guides.clearAll();
     container.classList.add('msr-tb-hidden');
     document.removeEventListener('keydown', onKeyDown, true);

@@ -767,3 +767,33 @@ test('measures elements inside an open shadow root, arrow up reaches the host', 
   await page.keyboard.press('ArrowUp');
   await expect(page.locator('.msr-panel-tag')).toHaveText('x-card');
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Layout grid
+// ─────────────────────────────────────────────────────────────────────────────
+
+test('Grid draws columns from the settings and L toggles it', async () => {
+  await toggleToolbar(worker, page);
+  await page.locator('.msr-tb-btn', { hasText: 'Grid' }).click();
+  await expect(page.locator('.msr-grid-inner > div')).toHaveCount(12);
+
+  await page.locator('#msr-tb-row-grid input').first().fill('4');
+  await expect(page.locator('.msr-grid-inner > div')).toHaveCount(4);
+  // 1200 max - 2 × 24 margin - 3 × 24 gutter = 1080 / 4 columns
+  const col = await page.locator('.msr-grid-inner > div').first().boundingBox();
+  expect(col.width).toBeCloseTo(270, 0);
+
+  // Typing in a grid field never triggers shortcuts; leave it first
+  await page.locator('#msr-tb-row-grid input').first().blur();
+  await page.keyboard.press('l');
+  await expect(page.locator('.msr-grid')).toHaveCount(0);
+});
+
+test('the grid does not block measuring', async () => {
+  await toggleToolbar(worker, page);
+  await page.keyboard.press('l');
+  await page.keyboard.press('m');
+  const bb = await page.locator('#blue-box').boundingBox();
+  await page.mouse.move(bb.x + 10, bb.y + 10);
+  await expect(page.locator('.msr-panel-tag')).toHaveText('div#blue-box.box');
+});

@@ -257,6 +257,24 @@ const MSR_CSS = `
   transform: translate(-50%, -50%);
 }
 
+/* ── Layout grid (columns) ───────────────────────────────────── */
+.msr-grid {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2147483643; /* under everything else of ours */
+}
+.msr-grid-inner {
+  display: grid;
+  box-sizing: border-box;
+  height: 100%;
+  margin: 0 auto;
+}
+.msr-grid-inner > div {
+  background: rgba(239, 68, 68, 0.08);
+  box-shadow: inset 1px 0 rgba(239, 68, 68, 0.3), inset -1px 0 rgba(239, 68, 68, 0.3);
+}
+
 /* Short confirmation, e.g. after copying CSS */
 .msr-toast {
   position: fixed;
@@ -368,6 +386,27 @@ const MSR_CSS = `
 
 .msr-tb-close { color: #555; padding: 5px 7px; }
 .msr-tb-close:hover { color: #999; background: #1e1e1e; }
+
+/* Labeled number input in a sub-row (grid settings) */
+.msr-tb-field {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 4px;
+  color: #888;
+  font-size: 10px;
+  font-weight: 600;
+}
+.msr-tb-input {
+  width: 46px;
+  background: #222;
+  border: 1px solid #333;
+  border-radius: 4px;
+  color: #e0e0e0;
+  font: inherit;
+  padding: 3px 4px;
+}
+.msr-tb-input:focus-visible { outline: 2px solid #6366f1; outline-offset: 0; }
 
 .msr-tb-sep {
   width: 1px;
