@@ -13,17 +13,14 @@ const toolbar = (() => {
 
     container = document.createElement('div');
     container.id = 'msr-toolbar';
-    container.setAttribute('data-measure-extension', '');
     container.classList.add('msr-tb-hidden');
 
     // ── Row 1: tool switcher ──────────────────────────────────
     const rowMain = document.createElement('div');
     rowMain.className = 'msr-tb-row-main';
-    rowMain.setAttribute('data-measure-extension', '');
 
     btnMeasure = document.createElement('button');
     btnMeasure.className = 'msr-tb-btn';
-    btnMeasure.setAttribute('data-measure-extension', '');
     btnMeasure.setAttribute('aria-label', 'Toggle measure tool');
     btnMeasure.setAttribute('aria-pressed', 'false');
     btnMeasure.textContent = '📐 Measure';
@@ -33,7 +30,6 @@ const toolbar = (() => {
 
     btnGuides = document.createElement('button');
     btnGuides.className = 'msr-tb-btn';
-    btnGuides.setAttribute('data-measure-extension', '');
     btnGuides.setAttribute('aria-label', 'Toggle guides tool');
     btnGuides.setAttribute('aria-pressed', 'false');
     btnGuides.textContent = '📏 Guides';
@@ -43,20 +39,16 @@ const toolbar = (() => {
 
     const sep1 = document.createElement('div');
     sep1.className = 'msr-tb-sep';
-    sep1.setAttribute('data-measure-extension', '');
 
     const hint = document.createElement('span');
     hint.className = 'msr-tb-shortcut';
-    hint.setAttribute('data-measure-extension', '');
     hint.textContent = getShortcut();
 
     const sep2hint = document.createElement('div');
     sep2hint.className = 'msr-tb-sep';
-    sep2hint.setAttribute('data-measure-extension', '');
 
     const btnClose = document.createElement('button');
     btnClose.className = 'msr-tb-btn msr-tb-close';
-    btnClose.setAttribute('data-measure-extension', '');
     btnClose.setAttribute('aria-label', 'Close toolbar');
     btnClose.textContent = '✕';
     btnClose.addEventListener('click', () => {
@@ -69,7 +61,6 @@ const toolbar = (() => {
 
     const btnKofi = document.createElement('button');
     btnKofi.className = 'msr-tb-btn msr-tb-kofi';
-    btnKofi.setAttribute('data-measure-extension', '');
     btnKofi.setAttribute('aria-label', 'Support on Ko-fi');
     btnKofi.textContent = '☕';
     btnKofi.addEventListener('click', () => {
@@ -87,12 +78,10 @@ const toolbar = (() => {
     // ── Row 2: guides sub-options ─────────────────────────────
     rowSub = document.createElement('div');
     rowSub.className = 'msr-tb-row-sub msr-tb-hidden';
-    rowSub.setAttribute('data-measure-extension', '');
 
     btnV = document.createElement('button');
     btnV.id = 'msr-tb-v';
     btnV.className = 'msr-tb-btn msr-tb-btn-active'; // V is default
-    btnV.setAttribute('data-measure-extension', '');
     btnV.setAttribute('aria-label', 'Vertical guides');
     btnV.setAttribute('aria-pressed', 'true');
     btnV.textContent = 'V';
@@ -103,7 +92,6 @@ const toolbar = (() => {
     btnH = document.createElement('button');
     btnH.id = 'msr-tb-h';
     btnH.className = 'msr-tb-btn';
-    btnH.setAttribute('data-measure-extension', '');
     btnH.setAttribute('aria-label', 'Horizontal guides');
     btnH.setAttribute('aria-pressed', 'false');
     btnH.textContent = 'H';
@@ -113,12 +101,10 @@ const toolbar = (() => {
 
     const sep2 = document.createElement('div');
     sep2.className = 'msr-tb-sep';
-    sep2.setAttribute('data-measure-extension', '');
 
     btnGap = document.createElement('button');
     btnGap.id = 'msr-tb-gap';
     btnGap.className = 'msr-tb-btn';
-    btnGap.setAttribute('data-measure-extension', '');
     btnGap.setAttribute('aria-label', 'Toggle gap labels');
     btnGap.setAttribute('aria-pressed', 'false');
     btnGap.textContent = 'Gap';
@@ -131,12 +117,10 @@ const toolbar = (() => {
 
     const sep3 = document.createElement('div');
     sep3.className = 'msr-tb-sep';
-    sep3.setAttribute('data-measure-extension', '');
 
     const btnClear = document.createElement('button');
     btnClear.id = 'msr-tb-clear';
     btnClear.className = 'msr-tb-btn';
-    btnClear.setAttribute('data-measure-extension', '');
     btnClear.setAttribute('aria-label', 'Clear all guides');
     btnClear.textContent = 'Clear';
     btnClear.addEventListener('click', () => guides.clearAll());
@@ -150,7 +134,7 @@ const toolbar = (() => {
 
     container.appendChild(rowMain);
     container.appendChild(rowSub);
-    document.body.appendChild(container);
+    ui.root.appendChild(container);
   }
 
   function setDirection(d) {

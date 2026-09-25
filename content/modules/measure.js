@@ -1,13 +1,8 @@
 const measure = (() => {
-  const EXT_ATTR = 'data-measure-extension';
   let highlight = null; // blue hover ring
   let panel     = null; // hover panel
   let hoverEl   = null;
   const locks   = [];   // [{ el, ring, panel }]
-
-  function isExtEl(el) {
-    return el && el.hasAttribute && el.hasAttribute(EXT_ATTR);
-  }
 
   function getBoxModel(el) {
     const r  = el.getBoundingClientRect();
@@ -51,7 +46,6 @@ const measure = (() => {
     const pad = shorthand(bm.padTop, bm.padRight, bm.padBottom, bm.padLeft);
     const mar = shorthand(bm.marTop, bm.marRight, bm.marBottom, bm.marLeft);
     const p = document.createElement('div');
-    p.setAttribute(EXT_ATTR, '');
     p.classList.add('msr-panel');
     if (locked) p.classList.add('msr-panel-locked');
 
@@ -69,7 +63,7 @@ const measure = (() => {
     p.appendChild(panelRow('x', bm.x + 'px'));
     p.appendChild(panelRow('y', bm.y + 'px'));
 
-    document.body.appendChild(p);
+    ui.root.appendChild(p);
     return p;
   }
 
@@ -112,13 +106,12 @@ const measure = (() => {
     const r  = el.getBoundingClientRect();
 
     const ring = document.createElement('div');
-    ring.setAttribute(EXT_ATTR, '');
     ring.classList.add('msr-lock-ring');
     Object.assign(ring.style, {
       left: r.left + 'px', top: r.top + 'px',
       width: r.width + 'px', height: r.height + 'px',
     });
-    document.body.appendChild(ring);
+    ui.root.appendChild(ring);
 
     const p = buildPanelEl(bm, true);
     requestAnimationFrame(() => positionPanel(p, r));
@@ -169,15 +162,15 @@ const measure = (() => {
   // ── Event handlers ───────────────────────────────────────────
 
   function onMouseMove(e) {
-    const el = msrOverlay.elementAt(e.clientX, e.clientY);
-    if (!el || isExtEl(el) || el === hoverEl) return;
+    const el = ui.elementAt(e.clientX, e.clientY);
+    if (!el || el === hoverEl) return;
     hoverEl = el;
     showOverlay(el);
   }
 
   function onClick(e) {
-    const el = msrOverlay.elementAt(e.clientX, e.clientY);
-    if (!el || isExtEl(el)) return;
+    const el = ui.elementAt(e.clientX, e.clientY);
+    if (!el) return;
     isLocked(el) ? unlockEl(el) : lockEl(el);
   }
 
@@ -187,10 +180,9 @@ const measure = (() => {
     if (highlight) return;
     msrOverlay.setMeasure(true);
     highlight = document.createElement('div');
-    highlight.setAttribute(EXT_ATTR, '');
     highlight.classList.add('msr-hover-highlight');
     highlight.style.display = 'none';
-    document.body.appendChild(highlight);
+    ui.root.appendChild(highlight);
     msrOverlay.el.addEventListener('mousemove', onMouseMove);
     msrOverlay.el.addEventListener('click', onClick);
     document.addEventListener('scroll', repositionAll, true);

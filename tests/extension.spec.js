@@ -411,3 +411,13 @@ test('Clear also removes gap labels', async () => {
   await expect(page.locator('.msr-guide:not(.msr-guide-ghost)')).toHaveCount(0);
   await expect(page.locator('.msr-gap-label')).toHaveCount(0);
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Shadow DOM
+// ─────────────────────────────────────────────────────────────────────────────
+
+test('page CSS cannot restyle the toolbar (shadow DOM)', async () => {
+  await page.addStyleTag({ content: 'button, div { display: none !important; }' });
+  await toggleToolbar(worker, page);
+  await expect(page.locator('.msr-tb-btn', { hasText: 'Measure' })).toBeVisible();
+});

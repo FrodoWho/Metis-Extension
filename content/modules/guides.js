@@ -1,5 +1,4 @@
 const guides = (() => {
-  const EXT_ATTR    = 'data-measure-extension';
   const SNAP_PX     = 8; // snap threshold in px
   const lines       = [];
   const gapLabels   = []; // cached gap label elements (avoids querySelectorAll)
@@ -20,8 +19,8 @@ const guides = (() => {
   function snapCoord(raw, e) {
     if (e.shiftKey) return { coord: raw, snapEl: null };
 
-    const el = msrOverlay.elementAt(e.clientX, e.clientY);
-    if (!el || el.hasAttribute(EXT_ATTR)) return { coord: raw, snapEl: null };
+    const el = ui.elementAt(e.clientX, e.clientY);
+    if (!el) return { coord: raw, snapEl: null };
 
     const r    = el.getBoundingClientRect();
     const candidates = direction === 'v'
@@ -47,9 +46,8 @@ const guides = (() => {
     }
     if (!snapHighlight || !snapHighlight.isConnected) {
       snapHighlight = document.createElement('div');
-      snapHighlight.setAttribute(EXT_ATTR, '');
       snapHighlight.classList.add('msr-snap-highlight');
-      document.body.appendChild(snapHighlight);
+      ui.root.appendChild(snapHighlight);
     }
     const r = el.getBoundingClientRect();
     Object.assign(snapHighlight.style, {
@@ -65,7 +63,6 @@ const guides = (() => {
 
   function createGuide(coord) {
     const container = document.createElement('div');
-    container.setAttribute(EXT_ATTR, '');
     container.dataset.orient = direction;
     container.classList.add('msr-guide');
 
@@ -93,7 +90,7 @@ const guides = (() => {
     container.appendChild(line);
     container.appendChild(hit);
     container.appendChild(label);
-    document.body.appendChild(container);
+    ui.root.appendChild(container);
     lines.push(container);
 
     if (gapVisible) renderGaps();
@@ -116,12 +113,11 @@ const guides = (() => {
 
   function addGapLabel(text, left, top) {
     const lbl = document.createElement('div');
-    lbl.setAttribute(EXT_ATTR, '');
     lbl.classList.add('msr-gap-label');
     lbl.textContent = text;
     lbl.style.left = left;
     lbl.style.top  = top;
-    document.body.appendChild(lbl);
+    ui.root.appendChild(lbl);
     gapLabels.push(lbl);
   }
 
@@ -156,12 +152,11 @@ const guides = (() => {
     if (ghost && ghost.isConnected) return;
     ghost = null;
     ghost = document.createElement('div');
-    ghost.setAttribute(EXT_ATTR, '');
     ghost.classList.add('msr-guide', 'msr-guide-ghost');
     const line = document.createElement('div');
     line.classList.add('msr-guide-line');
     ghost.appendChild(line);
-    document.body.appendChild(ghost);
+    ui.root.appendChild(ghost);
   }
 
   function removeGhost() {
@@ -233,7 +228,7 @@ const guides = (() => {
   function setGapVisible(v) {
     gapVisible = v;
     if (v) renderGaps();
-    else document.querySelectorAll('.msr-gap-label[data-measure-extension]').forEach(el => el.remove());
+    else   removeGapLabels();
   }
 
   function clearAll() {

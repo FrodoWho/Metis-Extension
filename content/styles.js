@@ -1,3 +1,9 @@
+// Injected as a <style> inside the extension's shadow root (see ui.js).
+// Page CSS can't reach these elements and these rules can't leak out.
+const MSR_CSS = `
+/* Reset everything the host would otherwise inherit from the page. */
+:host { all: initial; }
+
 /* Full-screen capture overlay — absorbs all pointer events while a tool is
    active, preventing iframes, ads, and page scripts from receiving them. */
 #msr-overlay {
@@ -269,3 +275,4 @@
   flex-shrink: 0;
 }
 
+`;

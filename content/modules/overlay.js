@@ -13,8 +13,7 @@ const msrOverlay = (() => {
     if (el) return;
     el = document.createElement('div');
     el.id = 'msr-overlay';
-    el.setAttribute('data-measure-extension', '');
-    document.body.appendChild(el);
+    ui.root.appendChild(el);
   }
 
   function destroy() {
@@ -35,22 +34,9 @@ const msrOverlay = (() => {
   function setGuides(v)  { guidesActive  = v; sync(); }
   function setMeasure(v) { measureActive = v; sync(); }
 
-  /**
-   * Return the real page element under the cursor by briefly disabling the
-   * overlay's pointer-events so elementFromPoint skips it.
-   */
-  function elementAt(x, y) {
-    if (!el) return document.elementFromPoint(x, y);
-    el.style.pointerEvents = 'none';
-    const found = document.elementFromPoint(x, y);
-    el.style.pointerEvents = '';
-    return found;
-  }
-
   return {
     setGuides,
     setMeasure,
-    elementAt,
     get el() { return el; },
   };
 })();
