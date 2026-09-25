@@ -1,7 +1,7 @@
 const toolbar = (() => {
   let container = null;
   let btnMeasure, btnGuides, btnV, btnH, btnGap, btnPx, btnRem, btnCollapse;
-  let rowMeasure, rowGuides;
+  let rowMeasure, rowGuides, viewport;
   const state = { measure: false, guides: false, direction: 'v', gapVisible: false };
   const prefs = { left: null, top: null, collapsed: false, units: 'px' }; // remembered across pages
 
@@ -55,7 +55,9 @@ const toolbar = (() => {
     btnGuides = button(rowMain, '📏 Guides', 'Guides tool',
       () => applyTool('guides', !state.guides), { key: 'G', pressed: false });
     el('div', 'msr-tb-sep', rowMain);
-    el('span', 'msr-tb-shortcut', rowMain).textContent = getShortcut();
+    viewport = el('span', 'msr-tb-viewport', rowMain);
+    viewport.title = 'Viewport size (what media queries see)';
+    showViewport();
     el('div', 'msr-tb-sep', rowMain);
     button(rowMain, '☕', 'Support on Ko-fi',
       () => window.open('https://ko-fi.com/FrodoWho', '_blank'), { className: 'msr-tb-kofi' });
@@ -91,7 +93,7 @@ const toolbar = (() => {
     button(rowGuides, 'Clear', 'Clear all guides', () => guides.clearAll()).id = 'msr-tb-clear';
 
     ui.root.appendChild(container);
-    window.addEventListener('resize', clamp);
+    window.addEventListener('resize', () => { clamp(); showViewport(); });
 
     ui.store.get('toolbar', prefs).then((saved) => {
       Object.assign(prefs, saved);
@@ -107,6 +109,10 @@ const toolbar = (() => {
     setPressed(btnPx,  u === 'px');
     setPressed(btnRem, u === 'rem');
     persist();
+  }
+
+  function showViewport() {
+    viewport.textContent = `${window.innerWidth} × ${window.innerHeight}`;
   }
 
   function persist() { ui.store.set('toolbar', prefs); }

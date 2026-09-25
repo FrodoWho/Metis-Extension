@@ -349,11 +349,12 @@ const MSR_CSS = `
 .msr-tb-kofi { color: #555; padding: 5px 7px; }
 .msr-tb-kofi:hover { color: #fb923c; background: #1e1e1e; }
 
-.msr-tb-shortcut {
+.msr-tb-viewport {
   font-size: 9px;
-  color: #444;
+  color: #888;
   padding: 0 2px;
   letter-spacing: 0.04em;
+  font-variant-numeric: tabular-nums;
   user-select: none;
   white-space: nowrap;
 }

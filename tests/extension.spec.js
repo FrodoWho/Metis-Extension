@@ -732,3 +732,16 @@ test('panel shows the WCAG contrast ratio of text', async () => {
   await page.mouse.move(grey.x + 5, grey.y + grey.height / 2);
   await expect(page.locator('.msr-panel')).toContainText('2.84:1 fail');
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Toolbar — viewport size
+// ─────────────────────────────────────────────────────────────────────────────
+
+test('toolbar shows the viewport size and follows resizes', async () => {
+  await page.setViewportSize({ width: 1024, height: 700 });
+  await toggleToolbar(worker, page);
+  await expect(page.locator('.msr-tb-viewport')).toHaveText('1024 × 700');
+
+  await page.setViewportSize({ width: 768, height: 600 });
+  await expect(page.locator('.msr-tb-viewport')).toHaveText('768 × 600');
+});
