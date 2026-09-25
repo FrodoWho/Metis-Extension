@@ -2,13 +2,33 @@
  * Shared helpers for Playwright extension tests.
  */
 const { chromium } = require('playwright');
+const fs   = require('fs');
+const os   = require('os');
 const path = require('path');
 
-const EXTENSION_PATH = path.resolve(__dirname, '..', 'dist', 'chrome');
+const DIST_PATH = path.resolve(__dirname, '..', 'dist', 'chrome');
+
+// The shipped manifest only has activeTab, which needs a real user gesture.
+// Synthetic key presses don't fire extension commands, so tests run against a
+// copy that is also allowed to script the local test server.
+function buildTestExtension() {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'metis-test-'));
+  fs.cpSync(DIST_PATH, dir, { recursive: true });
+  const manifestPath = path.join(dir, 'manifest.json');
+  const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+  manifest.host_permissions = ['http://localhost:4321/*'];
+  fs.writeFileSync(manifestPath, JSON.stringify(manifest));
+  return dir;
+}
+
+const EXTENSION_PATH = buildTestExtension();
 
 async function launchExtension() {
   const context = await chromium.launchPersistentContext('', {
-    headless: false,
+    // The 'chromium' channel's new headless mode supports extensions, so tests
+    // don't open windows. HEADED=1 shows the browser for debugging.
+    channel: 'chromium',
+    headless: !process.env.HEADED,
     args: [
       `--disable-extensions-except=${EXTENSION_PATH}`,
       `--load-extension=${EXTENSION_PATH}`,
@@ -45,26 +65,12 @@ async function ensureInjected(worker, page) {
   }, { tabId });
   if (alreadyInjected) return tabId;
 
-  // activeTab requires a real user gesture. Press the extension's
-  // keyboard shortcut via the page — that fires _execute_action, which
-  // grants activeTab and lets background.js inject content scripts.
-  await page.bringToFront();
-  await page.keyboard.press('Alt+Shift+M');
-  await page.waitForFunction(
-    () => document.getElementById('msr-toolbar') !== null,
-    null,
-    { timeout: 3000 }
-  );
-  // First press showed the toolbar — press again to hide so tests start clean.
-  await page.keyboard.press('Alt+Shift+M');
-  await page.waitForFunction(
-    () => {
-      const tb = document.getElementById('msr-toolbar');
-      return !tb || tb.style.display === 'none' || !tb.offsetParent;
-    },
-    null,
-    { timeout: 3000 }
-  );
+  // Same path as an icon click: toggleInTab (background.js) injects on first
+  // use. Toggle twice so tests start with the toolbar built but hidden.
+  await worker.evaluate(async ({ tabId }) => {
+    await toggleInTab(tabId);
+    await toggleInTab(tabId);
+  }, { tabId });
   return tabId;
 }
 

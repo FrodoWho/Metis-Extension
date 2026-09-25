@@ -6,7 +6,7 @@
     "build:chrome": "node build.js --chrome",
     "build:firefox": "node build.js --firefox",
     "test": "node build.js --chrome && playwright test",
-    "test:headed": "node build.js --chrome && playwright test --headed"
+    "test:headed": "node build.js --chrome && HEADED=1 playwright test"
   },
   "devDependencies": {
     "@playwright/test": "^1.59.1"
