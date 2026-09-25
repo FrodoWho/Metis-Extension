@@ -242,6 +242,72 @@ const MSR_CSS = `
   left: 4px;
 }
 
+/* With rulers showing (guides tool on), keep guide labels clear of them */
+:host(.msr-guides-on) .msr-guide-label { top: 20px; }
+:host(.msr-guides-on) .msr-guide-h .msr-guide-label { top: 4px; left: 20px; }
+
+/* ── Rulers (16px, see RULER_PX in guides.js) ────────────────── */
+.msr-ruler {
+  position: fixed;
+  z-index: 2147483646;
+  box-sizing: border-box;
+  overflow: hidden;
+  background-color: #1a1a1a;
+  color: #888;
+  font-family: 'SF Mono', 'Menlo', 'Consolas', monospace;
+  font-size: 8px;
+  line-height: 1;
+  user-select: none;
+  touch-action: none;
+  --shift: 0px; /* scroll offset while guides are pinned */
+}
+/* Ticks every 100 / 50 / 10px, drawn as three repeating gradient tiles */
+.msr-ruler-top {
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 16px;
+  border-bottom: 1px solid #333;
+  cursor: ns-resize; /* drag out a horizontal guide */
+  background-image:
+    linear-gradient(to right, #777 1px, transparent 1px),
+    linear-gradient(to right, #555 1px, transparent 1px),
+    linear-gradient(to right, #444 1px, transparent 1px);
+  background-size: 100px 100%, 50px 7px, 10px 4px;
+  background-position: var(--shift) 0, var(--shift) 100%, var(--shift) 100%;
+  background-repeat: repeat-x;
+}
+.msr-ruler-left {
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 16px;
+  border-right: 1px solid #333;
+  cursor: ew-resize; /* drag out a vertical guide */
+  background-image:
+    linear-gradient(to bottom, #777 1px, transparent 1px),
+    linear-gradient(to bottom, #555 1px, transparent 1px),
+    linear-gradient(to bottom, #444 1px, transparent 1px);
+  background-size: 100% 100px, 7px 50px, 4px 10px;
+  background-position: 0 var(--shift), 100% var(--shift), 100% var(--shift);
+  background-repeat: repeat-y;
+}
+.msr-ruler-corner {
+  top: 0;
+  left: 0;
+  width: 16px;
+  height: 16px;
+  border-right: 1px solid #333;
+  border-bottom: 1px solid #333;
+  pointer-events: none;
+}
+.msr-ruler-label {
+  position: absolute;
+  pointer-events: none;
+}
+.msr-ruler-top  .msr-ruler-label { top: 2px; }
+.msr-ruler-left .msr-ruler-label { left: 3px; writing-mode: vertical-rl; }
+
 /* ── Gap label (px distance between adjacent parallel guides) ── */
 .msr-gap-label {
   position: fixed;

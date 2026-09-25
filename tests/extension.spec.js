@@ -875,3 +875,36 @@ test('pinned guides scroll with the page and keep their page coordinate', async 
   expect(await guide.evaluate(el => el.style.top)).toBe('200px');
   await expect(page.locator('.msr-guide-label')).toHaveText('200px');
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Guides — rulers
+// ─────────────────────────────────────────────────────────────────────────────
+
+test('rulers show while placing guides and a guide can be dragged out of them', async () => {
+  await toggleToolbar(worker, page);
+  await page.keyboard.press('g');
+  await expect(page.locator('.msr-ruler-top')).toBeVisible();
+  await expect(page.locator('.msr-ruler-top .msr-ruler-label', { hasText: /^300$/ })).toHaveCount(1);
+
+  // Top ruler → horizontal guide
+  await page.mouse.move(700, 8);
+  await page.keyboard.down('Shift');
+  await page.mouse.down();
+  await page.mouse.move(700, 300, { steps: 5 });
+  await page.mouse.up();
+  await page.keyboard.up('Shift');
+  const guide = page.locator('.msr-guide.msr-guide-h:not(.msr-guide-ghost)');
+  await expect(guide).toHaveCount(1);
+  expect(await guide.evaluate(el => el.style.top)).toBe('300px');
+
+  // Dropping back onto the ruler cancels
+  await page.mouse.move(8, 500);
+  await page.mouse.down();
+  await page.mouse.move(400, 500, { steps: 3 });
+  await page.mouse.move(8, 500, { steps: 3 });
+  await page.mouse.up();
+  await expect(page.locator('.msr-guide:not(.msr-guide-h):not(.msr-guide-ghost)')).toHaveCount(0);
+
+  await page.keyboard.press('m');
+  await expect(page.locator('.msr-ruler')).toHaveCount(0);
+});

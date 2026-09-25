@@ -1,6 +1,7 @@
 const guides = (() => {
   const SNAP_PX     = 8; // snap threshold in px
   const DRAG_PX     = 3; // movement before a press on a guide counts as a drag
+  const RULER_PX    = 16; // ruler thickness (keep in sync with styles.js)
   const lines       = []; // most recently placed/moved last (arrow keys nudge it)
   const gapLabels   = [];
   let enabled       = false;
@@ -9,6 +10,7 @@ const guides = (() => {
   let snapHighlight = null; // transient ring shown on snapped element
   let gapVisible    = false;
   let pinned        = false; // guides scroll with the page instead of the screen
+  let rulers        = null;  // { top, left, corner } while the tool is on
 
   // ── Snap helpers ─────────────────────────────────────────────
 
@@ -89,6 +91,7 @@ const guides = (() => {
   function onScroll() {
     lines.forEach(place);
     if (gapVisible) renderGaps();
+    renderRulers();
   }
 
   /** Pin guides to the page (they scroll with it) or to the screen. */
@@ -106,11 +109,11 @@ const guides = (() => {
   }
 
   /** viewportCoord: where on screen the guide goes. */
-  function createGuide(viewportCoord) {
+  function createGuide(viewportCoord, orient = direction) {
     const container = document.createElement('div');
-    container.dataset.orient = direction;
+    container.dataset.orient = orient;
     container.classList.add('msr-guide');
-    if (direction === 'h') container.classList.add('msr-guide-h');
+    if (orient === 'h') container.classList.add('msr-guide-h');
 
     const line = document.createElement('div');
     line.classList.add('msr-guide-line');
@@ -125,7 +128,8 @@ const guides = (() => {
     container.append(line, hit, label);
     ui.root.appendChild(container);
     lines.push(container);
-    setCoord(container, viewportCoord + offset(direction));
+    setCoord(container, viewportCoord + offset(orient));
+    return container;
   }
 
   /** Drag a guide to move it. A press without movement removes it. */
@@ -205,6 +209,65 @@ const guides = (() => {
     }
   }
 
+  // ── Rulers ───────────────────────────────────────────────────
+
+  /** Numbers every 100px; the tick marks themselves are CSS gradients. */
+  function renderRulers() {
+    if (!rulers) return;
+    // The top ruler runs along x (where vertical guides sit), the left along y
+    for (const [ruler, orient] of [[rulers.top, 'v'], [rulers.left, 'h']]) {
+      const o    = offset(orient);
+      const size = orient === 'v' ? window.innerWidth : window.innerHeight;
+      ruler.style.setProperty('--shift', -o + 'px');
+      ruler.replaceChildren();
+      for (let v = Math.floor(o / 100) * 100; v - o < size; v += 100) {
+        const lbl = document.createElement('span');
+        lbl.className = 'msr-ruler-label';
+        lbl.textContent = v;
+        lbl.style[orient === 'v' ? 'left' : 'top'] = (v - o + 2) + 'px';
+        ruler.appendChild(lbl);
+      }
+    }
+  }
+
+  /** Drag out of a ruler to create a guide; dropping it back cancels. */
+  function onRulerDown(e) {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    const ruler  = e.currentTarget;
+    const orient = ruler === rulers.top ? 'h' : 'v';
+    const pick   = ev => (orient === 'h' ? ev.clientY : ev.clientX);
+    const guide  = createGuide(pick(e), orient);
+    const onMove = ev => setCoord(guide, snapCoord(pick(ev), ev, orient).coord + offset(orient));
+
+    ruler.setPointerCapture(e.pointerId);
+    ruler.addEventListener('pointermove', onMove);
+    ruler.addEventListener('lostpointercapture', () => {
+      ruler.removeEventListener('pointermove', onMove);
+      if (coordOf(guide) - offset(orient) < RULER_PX) removeGuide(guide);
+    }, { once: true });
+  }
+
+  function showRulers() {
+    rulers = {};
+    for (const side of ['top', 'left', 'corner']) {
+      rulers[side] = document.createElement('div');
+      rulers[side].className = `msr-ruler msr-ruler-${side}`;
+      ui.root.appendChild(rulers[side]);
+    }
+    rulers.top.addEventListener('pointerdown', onRulerDown);
+    rulers.left.addEventListener('pointerdown', onRulerDown);
+    window.addEventListener('resize', renderRulers);
+    renderRulers();
+  }
+
+  function hideRulers() {
+    if (!rulers) return;
+    Object.values(rulers).forEach(r => r.remove());
+    rulers = null;
+    window.removeEventListener('resize', renderRulers);
+  }
+
   // ── Ghost ────────────────────────────────────────────────────
 
   function ensureGhost() {
@@ -260,6 +323,7 @@ const guides = (() => {
     enabled = true;
     msrOverlay.setGuides(true);
     ui.host.classList.add('msr-guides-on');
+    showRulers();
     msrOverlay.el.addEventListener('mousemove', onMouseMove);
     msrOverlay.el.addEventListener('click', onClick);
   }
@@ -275,6 +339,7 @@ const guides = (() => {
     }
     msrOverlay.setGuides(false);
     ui.host.classList.remove('msr-guides-on');
+    hideRulers();
     removeGhost();
     if (snapHighlight) { snapHighlight.remove(); snapHighlight = null; }
   }
