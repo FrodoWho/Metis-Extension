@@ -797,3 +797,57 @@ test('the grid does not block measuring', async () => {
   await page.mouse.move(bb.x + 10, bb.y + 10);
   await expect(page.locator('.msr-panel-tag')).toHaveText('div#blue-box.box');
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Design overlay
+// ─────────────────────────────────────────────────────────────────────────────
+
+async function makePng(w, h) {
+  const b64 = await page.evaluate(([w, h]) => {
+    const c = Object.assign(document.createElement('canvas'), { width: w, height: h });
+    const ctx = c.getContext('2d');
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, w, h);
+    return c.toDataURL('image/png').split(',')[1];
+  }, [w, h]);
+  return { name: 'mock.png', mimeType: 'image/png', buffer: Buffer.from(b64, 'base64') };
+}
+
+test('Overlay lays a design image over the page with opacity, scale and diff', async () => {
+  const file = await makePng(400, 300);
+  await toggleToolbar(worker, page);
+
+  // First toggle opens the file picker right away
+  const chooser = page.waitForEvent('filechooser');
+  await page.locator('.msr-tb-btn', { hasText: 'Overlay' }).click();
+  await (await chooser).setFiles(file);
+
+  const wrap = page.locator('.msr-mockup');
+  const img  = page.locator('.msr-mockup img');
+  await expect(img).toBeVisible();
+  expect(await wrap.evaluate(el => el.style.opacity)).toBe('0.5');
+  await expect.poll(async () => (await img.boundingBox()).width).toBeCloseTo(400, 0);
+
+  await page.locator('#msr-tb-row-mockup select').first().selectOption('2');
+  await expect.poll(async () => (await img.boundingBox()).width).toBeCloseTo(200, 0);
+
+  await page.locator('#msr-tb-row-mockup input[type=range]').fill('80');
+  expect(await wrap.evaluate(el => el.style.opacity)).toBe('0.8');
+
+  await page.locator('#msr-tb-row-mockup .msr-tb-btn', { hasText: 'Diff' }).click();
+  expect(await wrap.evaluate(el => el.style.mixBlendMode)).toBe('difference');
+
+  // Measuring works through the image
+  await page.keyboard.press('m');
+  const bb = await page.locator('#blue-box').boundingBox();
+  await page.mouse.move(bb.x + bb.width / 2, bb.y + bb.height / 2); // clear of the taller toolbar
+  await expect(page.locator('.msr-panel-tag')).toHaveText('div#blue-box.box');
+
+  // O hides it without forgetting it, ✕ removes it
+  await page.keyboard.press('o');
+  await expect(img).toBeHidden();
+  await page.keyboard.press('o');
+  await expect(img).toBeVisible();
+  await page.locator('#msr-tb-row-mockup [aria-label="Remove image"]').click();
+  await expect(wrap).toHaveCount(0);
+});

@@ -275,6 +275,23 @@ const MSR_CSS = `
   box-shadow: inset 1px 0 rgba(239, 68, 68, 0.3), inset -1px 0 rgba(239, 68, 68, 0.3);
 }
 
+/* ── Design overlay (mockup image) ───────────────────────────── */
+.msr-mockup {
+  position: absolute; /* from the document's top-left, scrolls with the page */
+  top: 0;
+  left: 0;
+  width: 100%;
+  display: flex;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 2147483642;
+}
+.msr-mockup img {
+  display: block;
+  flex: none;
+  max-width: none;
+}
+
 /* Short confirmation, e.g. after copying CSS */
 .msr-toast {
   position: fixed;
@@ -384,8 +401,10 @@ const MSR_CSS = `
 #msr-toolbar.msr-tb-collapsed .msr-tb-row-main > :not(.msr-tb-grip, .msr-tb-collapse),
 #msr-toolbar.msr-tb-collapsed .msr-tb-row-sub { display: none; }
 
-.msr-tb-close { color: #555; padding: 5px 7px; }
-.msr-tb-close:hover { color: #999; background: #1e1e1e; }
+.msr-tb-close,
+.msr-tb-remove { color: #555; padding: 5px 7px; }
+.msr-tb-close:hover,
+.msr-tb-remove:hover { color: #999; background: #1e1e1e; }
 
 /* Labeled number input in a sub-row (grid settings) */
 .msr-tb-field {
@@ -407,6 +426,8 @@ const MSR_CSS = `
   padding: 3px 4px;
 }
 .msr-tb-input:focus-visible { outline: 2px solid #6366f1; outline-offset: 0; }
+.msr-tb-select { width: auto; margin: 0 2px; }
+.msr-tb-range  { width: 70px; accent-color: #6366f1; }
 
 .msr-tb-sep {
   width: 1px;

@@ -1,9 +1,9 @@
 const toolbar = (() => {
   let container = null;
-  let btnMeasure, btnGuides, btnGrid, btnV, btnH, btnGap, btnPx, btnRem, btnCollapse;
-  let rowMeasure, rowGuides, rowGrid, viewport;
+  let btnMeasure, btnGuides, btnGrid, btnMockup, btnV, btnH, btnGap, btnPx, btnRem, btnDiff, btnCollapse;
+  let rowMeasure, rowGuides, rowGrid, rowMockup, viewport, fileInput;
   const gridInputs = {};
-  const state = { measure: false, guides: false, grid: false, direction: 'v', gapVisible: false };
+  const state = { measure: false, guides: false, grid: false, mockup: false, direction: 'v', gapVisible: false };
   // Remembered across pages
   const prefs = { left: null, top: null, collapsed: false, units: 'px', grid: { ...grid.settings } };
 
@@ -54,6 +54,15 @@ const toolbar = (() => {
     gridInputs[key] = input;
   }
 
+  function select(parent, label, options, onChange) {
+    const s = el('select', 'msr-tb-input msr-tb-select', parent);
+    s.setAttribute('aria-label', label);
+    s.title = label;
+    for (const [value, text] of options) s.add(new Option(text, value));
+    s.addEventListener('change', () => onChange(s.value));
+    return s;
+  }
+
   function buildDOM() {
     if (container) return;
 
@@ -75,6 +84,8 @@ const toolbar = (() => {
       () => applyTool('guides', !state.guides), { key: 'G', pressed: false });
     btnGrid = button(rowMain, '▦ Grid', 'Layout grid',
       () => setGrid(!state.grid), { key: 'L', pressed: false });
+    btnMockup = button(rowMain, '🖼 Overlay', 'Design overlay',
+      () => setMockup(!state.mockup), { key: 'O', pressed: false });
     el('div', 'msr-tb-sep', rowMain);
     viewport = el('span', 'msr-tb-viewport', rowMain);
     viewport.title = 'Viewport size (what media queries see)';
@@ -121,6 +132,35 @@ const toolbar = (() => {
     gridField(rowGrid, 'Gutter', 'Space between columns (px)', 'gutter', 0, 500);
     gridField(rowGrid, 'Max',    'Maximum container width incl. margins (px), 0 = none', 'maxWidth', 0, 10000);
     gridField(rowGrid, 'Margin', 'Space left and right of the columns (px)', 'margin', 0, 500);
+
+    // ── Design overlay ────────────────────────────────────────
+    rowMockup = el('div', 'msr-tb-row-sub msr-tb-hidden', container);
+    rowMockup.id = 'msr-tb-row-mockup';
+
+    fileInput = el('input', '', rowMockup);
+    Object.assign(fileInput, { type: 'file', accept: 'image/*', hidden: true });
+    fileInput.addEventListener('change', () => {
+      if (fileInput.files[0]) mockup.load(fileInput.files[0]);
+      fileInput.value = ''; // picking the same file again should reload it
+    });
+    button(rowMockup, 'Image…', 'Choose a design image', () => fileInput.click());
+    el('div', 'msr-tb-sep', rowMockup);
+
+    const opacity = el('label', 'msr-tb-field', rowMockup);
+    opacity.append('Opacity');
+    const range = el('input', 'msr-tb-range', opacity);
+    Object.assign(range, { type: 'range', min: 0, max: 100, value: mockup.settings.opacity * 100 });
+    range.addEventListener('input', () => mockup.set({ opacity: range.value / 100 }));
+
+    select(rowMockup, 'Image scale (2x for retina exports)', [['1', '1x'], ['2', '2x'], ['3', '3x']],
+      v => mockup.set({ scale: Number(v) }));
+    select(rowMockup, 'Alignment', [['center', 'Center'], ['left', 'Left']],
+      v => mockup.set({ align: v }));
+    btnDiff = button(rowMockup, 'Diff', 'Difference blend: matching pixels turn black', () => {
+      mockup.set({ diff: !mockup.settings.diff });
+      setPressed(btnDiff, mockup.settings.diff);
+    }, { pressed: false });
+    button(rowMockup, '✕', 'Remove image', () => mockup.clear(), { className: 'msr-tb-remove' });
 
     ui.root.appendChild(container);
     window.addEventListener('resize', () => { clamp(); showViewport(); });
@@ -234,10 +274,20 @@ const toolbar = (() => {
     updateUI();
   }
 
+  /** Visual layer too. Opens the file picker when there's no image yet. */
+  function setMockup(on) {
+    state.mockup = on;
+    mockup.setVisible(on);
+    if (on && !mockup.loaded) fileInput.click();
+    updateUI();
+  }
+
   function updateUI() {
     setPressed(btnMeasure, state.measure);
     setPressed(btnGuides, state.guides);
     setPressed(btnGrid, state.grid);
+    setPressed(btnMockup, state.mockup);
+    rowMockup.classList.toggle('msr-tb-hidden', !state.mockup);
     rowMeasure.classList.toggle('msr-tb-hidden', !state.measure);
     rowGuides.classList.toggle('msr-tb-hidden', !state.guides);
     rowGrid.classList.toggle('msr-tb-hidden', !state.grid);
@@ -262,6 +312,7 @@ const toolbar = (() => {
     if (key === 'm') { applyTool('measure', !state.measure); return true; }
     if (key === 'g') { applyTool('guides',  !state.guides);  return true; }
     if (key === 'l') { setGrid(!state.grid); return true; }
+    if (key === 'o') { setMockup(!state.mockup); return true; }
 
     if (state.guides) {
       if (key === 'v' || key === 'h') { setDirection(key); return true; }
@@ -305,7 +356,9 @@ const toolbar = (() => {
     if (state.measure) applyTool('measure', false);
     if (state.guides)  applyTool('guides',  false);
     if (state.grid)    setGrid(false);
+    if (state.mockup)  setMockup(false);
     guides.clearAll();
+    mockup.clear();
     container.classList.add('msr-tb-hidden');
     document.removeEventListener('keydown', onKeyDown, true);
   }

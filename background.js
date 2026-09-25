@@ -8,6 +8,7 @@ const CONTENT_JS = [
   'content/modules/overlay.js',
   'content/modules/guides.js',
   'content/modules/grid.js',
+  'content/modules/mockup.js',
   'content/modules/measure.js',
   'content/modules/toolbar.js',
   'content/content.js',
