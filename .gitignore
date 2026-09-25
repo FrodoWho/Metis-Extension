@@ -2,3 +2,6 @@ node_modules/
 test-results/
 .playwright-mcp/
 dist/
+.DS_Store
+.superpowers/
+*.zip
