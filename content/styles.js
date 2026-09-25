@@ -159,16 +159,23 @@ const MSR_CSS = `
   pointer-events: none;
 }
 
-/* 8px invisible hit zone centred on the 1px line */
+/* 8px invisible hit zone centred on the 1px line. Only interactive while the
+   guides tool is on, so guides left visible in measure mode don't block it. */
 .msr-guide-hit {
   position: absolute;
   top: 0;
   bottom: 0;
   left: -4px;
   width: 8px;
-  cursor: pointer;
-  pointer-events: auto;
+  pointer-events: none;
 }
+
+:host(.msr-guides-on) .msr-guide-hit {
+  pointer-events: auto;
+  cursor: ew-resize;
+}
+
+:host(.msr-guides-on) .msr-guide-h .msr-guide-hit { cursor: ns-resize; }
 
 /* X coordinate label */
 .msr-guide-label {
@@ -191,9 +198,6 @@ const MSR_CSS = `
 }
 .msr-guide-ghost .msr-guide-line {
   opacity: 0.4;
-}
-.msr-guide-ghost .msr-guide-hit {
-  pointer-events: none;
 }
 
 /* ── Horizontal guide modifier ───────────────────────────────── */

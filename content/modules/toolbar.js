@@ -54,6 +54,7 @@ const toolbar = (() => {
     btnClose.addEventListener('click', () => {
       if (state.measure) applyTool('measure', false);
       if (state.guides)  applyTool('guides',  false);
+      guides.clearAll();
       container.classList.add('msr-tb-hidden');
       document.removeEventListener('keydown', onKeyDown, true);
       keysActive = false;
@@ -192,6 +193,7 @@ const toolbar = (() => {
     } else {
       if (state.measure) applyTool('measure', false);
       if (state.guides)  applyTool('guides',  false);
+      guides.clearAll();
       container.classList.add('msr-tb-hidden');
       document.removeEventListener('keydown', onKeyDown, true);
       keysActive = false;

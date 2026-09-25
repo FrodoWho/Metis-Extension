@@ -467,3 +467,47 @@ test('panel shows typography for elements with their own text', async () => {
   await expect(p).toContainText('sans-serif');
   await expect(p).toContainText('#000000');
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Guides — persist across tools, drag to move
+// ─────────────────────────────────────────────────────────────────────────────
+
+test('guides stay visible when switching to Measure and do not block it', async () => {
+  await toggleToolbar(worker, page);
+  await page.locator('.msr-tb-btn', { hasText: 'Guides' }).click();
+  const bb = await page.locator('#blue-box').boundingBox();
+  const cx = Math.round(bb.x + bb.width / 2);
+  await page.mouse.click(cx, 400, { modifiers: ['Shift'] });
+
+  await page.locator('.msr-tb-btn', { hasText: 'Measure' }).click();
+  await expect(page.locator('.msr-guide:not(.msr-guide-ghost)')).toHaveCount(1);
+
+  // Hovering right on the guide line measures the element underneath
+  await page.mouse.move(cx, bb.y + bb.height / 2);
+  await expect(page.locator('.msr-panel-tag')).toHaveText('div#blue-box.box');
+});
+
+test('closing the toolbar removes guides', async () => {
+  await toggleToolbar(worker, page);
+  await page.locator('.msr-tb-btn', { hasText: 'Guides' }).click();
+  await page.mouse.click(400, 300);
+  await page.locator('.msr-tb-close').click();
+  await expect(page.locator('.msr-guide:not(.msr-guide-ghost)')).toHaveCount(0);
+});
+
+test('dragging a guide moves it', async () => {
+  await activateTool(worker, page, 'guides', true);
+  await page.mouse.click(400, 300, { modifiers: ['Shift'] });
+  const guide = page.locator('.msr-guide:not(.msr-guide-ghost)');
+
+  await page.mouse.move(400, 300);
+  await page.keyboard.down('Shift'); // no snapping while dragging
+  await page.mouse.down();
+  await page.mouse.move(450, 300, { steps: 5 });
+  await page.mouse.up();
+  await page.keyboard.up('Shift');
+
+  await expect(guide).toHaveCount(1);
+  expect(await guide.evaluate(el => el.style.left)).toBe('450px');
+  await expect(page.locator('.msr-guide-label')).toHaveText('450px');
+});

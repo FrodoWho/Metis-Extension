@@ -1,7 +1,8 @@
 const guides = (() => {
   const SNAP_PX     = 8; // snap threshold in px
-  const lines       = [];
-  const gapLabels   = []; // cached gap label elements (avoids querySelectorAll)
+  const DRAG_PX     = 3; // movement before a press on a guide counts as a drag
+  const lines       = []; // most recently placed/moved last (arrow keys nudge it)
+  const gapLabels   = [];
   let enabled       = false;
   let direction     = 'v'; // 'v' | 'h'
   let ghost         = null;
@@ -16,14 +17,14 @@ const guides = (() => {
    * and the element being snapped to (null if no snap).
    * Shift key bypasses snapping.
    */
-  function snapCoord(raw, e) {
+  function snapCoord(raw, e, orient) {
     if (e.shiftKey) return { coord: raw, snapEl: null };
 
     const el = ui.elementAt(e.clientX, e.clientY);
     if (!el) return { coord: raw, snapEl: null };
 
     const r    = el.getBoundingClientRect();
-    const candidates = direction === 'v'
+    const candidates = orient === 'v'
       ? [r.left, r.right, r.left + r.width  / 2]
       : [r.top,  r.bottom, r.top  + r.height / 2];
 
@@ -44,7 +45,7 @@ const guides = (() => {
       if (snapHighlight) snapHighlight.style.display = 'none';
       return;
     }
-    if (!snapHighlight || !snapHighlight.isConnected) {
+    if (!snapHighlight) {
       snapHighlight = document.createElement('div');
       snapHighlight.classList.add('msr-snap-highlight');
       ui.root.appendChild(snapHighlight);
@@ -61,39 +62,62 @@ const guides = (() => {
 
   // ── Guide creation / removal ─────────────────────────────────
 
+  function coordOf(container) {
+    return parseFloat(container.dataset.orient === 'h' ? container.style.top : container.style.left);
+  }
+
+  function setCoord(container, coord) {
+    container.style[container.dataset.orient === 'h' ? 'top' : 'left'] = coord + 'px';
+    container.querySelector('.msr-guide-label').textContent = `${Math.round(coord)}px`;
+    if (gapVisible) renderGaps();
+  }
+
   function createGuide(coord) {
     const container = document.createElement('div');
     container.dataset.orient = direction;
     container.classList.add('msr-guide');
-
-    if (direction === 'h') {
-      container.classList.add('msr-guide-h');
-      container.style.top = coord + 'px';
-    } else {
-      container.style.left = coord + 'px';
-    }
+    if (direction === 'h') container.classList.add('msr-guide-h');
 
     const line = document.createElement('div');
     line.classList.add('msr-guide-line');
 
     const hit = document.createElement('div');
     hit.classList.add('msr-guide-hit');
-    hit.addEventListener('click', (e) => {
-      e.stopPropagation();
-      removeGuide(container);
-    });
+    hit.addEventListener('pointerdown', (e) => startDrag(e, container, hit));
 
     const label = document.createElement('div');
     label.classList.add('msr-guide-label');
-    label.textContent = `${Math.round(coord)}px`;
 
-    container.appendChild(line);
-    container.appendChild(hit);
-    container.appendChild(label);
+    container.append(line, hit, label);
     ui.root.appendChild(container);
     lines.push(container);
+    setCoord(container, coord);
+  }
 
-    if (gapVisible) renderGaps();
+  /** Drag a guide to move it. A press without movement removes it. */
+  function startDrag(e, container, hit) {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    const orient = container.dataset.orient;
+    const startX = e.clientX;
+    const startY = e.clientY;
+    let moved = false;
+
+    function onMove(ev) {
+      if (!moved && Math.hypot(ev.clientX - startX, ev.clientY - startY) < DRAG_PX) return;
+      moved = true;
+      const raw = orient === 'h' ? ev.clientY : ev.clientX;
+      setCoord(container, snapCoord(raw, ev, orient).coord);
+    }
+
+    if (ghost) ghost.style.display = 'none';
+    hit.setPointerCapture(e.pointerId);
+    hit.addEventListener('pointermove', onMove);
+    hit.addEventListener('lostpointercapture', () => {
+      hit.removeEventListener('pointermove', onMove);
+      if (!moved) return removeGuide(container);
+      lines.push(...lines.splice(lines.indexOf(container), 1));
+    }, { once: true });
   }
 
   function removeGuide(container) {
@@ -102,6 +126,14 @@ const guides = (() => {
     lines[idx].remove();
     lines.splice(idx, 1);
     if (gapVisible) renderGaps();
+  }
+
+  /** Move the most recently placed/moved guide of this orientation. */
+  function nudge(orient, delta) {
+    const guide = lines.findLast(c => c.dataset.orient === orient);
+    if (!guide) return false;
+    setCoord(guide, coordOf(guide) + delta);
+    return true;
   }
 
   // ── Gap labels ───────────────────────────────────────────────
@@ -124,33 +156,25 @@ const guides = (() => {
   function renderGaps() {
     removeGapLabels();
 
-    const vGuides = lines
-      .filter(c => c.dataset.orient === 'v')
-      .sort((a, b) => parseFloat(a.style.left) - parseFloat(b.style.left));
+    for (const orient of ['v', 'h']) {
+      const coords = lines
+        .filter(c => c.dataset.orient === orient)
+        .map(coordOf)
+        .sort((a, b) => a - b);
 
-    for (let i = 0; i < vGuides.length - 1; i++) {
-      const x1 = parseFloat(vGuides[i].style.left);
-      const x2 = parseFloat(vGuides[i + 1].style.left);
-      addGapLabel(Math.round(x2 - x1) + 'px', ((x1 + x2) / 2) + 'px', '50%');
-    }
-
-    const hGuides = lines
-      .filter(c => c.dataset.orient === 'h')
-      .sort((a, b) => parseFloat(a.style.top) - parseFloat(b.style.top));
-
-    for (let i = 0; i < hGuides.length - 1; i++) {
-      const y1 = parseFloat(hGuides[i].style.top);
-      const y2 = parseFloat(hGuides[i + 1].style.top);
-      addGapLabel(Math.round(y2 - y1) + 'px', '50%', ((y1 + y2) / 2) + 'px');
+      for (let i = 0; i < coords.length - 1; i++) {
+        const mid  = ((coords[i] + coords[i + 1]) / 2) + 'px';
+        const text = Math.round(coords[i + 1] - coords[i]) + 'px';
+        if (orient === 'v') addGapLabel(text, mid, '50%');
+        else                addGapLabel(text, '50%', mid);
+      }
     }
   }
 
   // ── Ghost ────────────────────────────────────────────────────
 
   function ensureGhost() {
-    if (!document.body) return;
-    if (ghost && ghost.isConnected) return;
-    ghost = null;
+    if (ghost) return;
     ghost = document.createElement('div');
     ghost.classList.add('msr-guide', 'msr-guide-ghost');
     const line = document.createElement('div');
@@ -169,12 +193,12 @@ const guides = (() => {
 
   function onMouseMove(e) {
     ensureGhost();
-    if (!ghost) return;
 
     const raw = direction === 'h' ? e.clientY : e.clientX;
-    const { coord, snapEl } = snapCoord(raw, e);
+    const { coord, snapEl } = snapCoord(raw, e, direction);
 
     setSnapHighlight(snapEl);
+    ghost.style.display = '';
     ghost.classList.toggle('msr-guide-snapped', !!snapEl);
 
     if (direction === 'h') {
@@ -191,7 +215,7 @@ const guides = (() => {
   function onClick(e) {
     e.preventDefault();
     const raw   = direction === 'h' ? e.clientY : e.clientX;
-    const { coord } = snapCoord(raw, e);
+    const { coord } = snapCoord(raw, e, direction);
     createGuide(coord);
   }
 
@@ -201,10 +225,12 @@ const guides = (() => {
     if (enabled) return;
     enabled = true;
     msrOverlay.setGuides(true);
+    ui.host.classList.add('msr-guides-on');
     msrOverlay.el.addEventListener('mousemove', onMouseMove);
     msrOverlay.el.addEventListener('click', onClick);
   }
 
+  /** Stop placing guides. Placed guides stay visible until clearAll(). */
   function disable() {
     if (!enabled) return;
     enabled = false;
@@ -214,11 +240,9 @@ const guides = (() => {
       overlayEl.removeEventListener('click', onClick);
     }
     msrOverlay.setGuides(false);
+    ui.host.classList.remove('msr-guides-on');
     removeGhost();
     if (snapHighlight) { snapHighlight.remove(); snapHighlight = null; }
-    lines.forEach(g => g.remove());
-    lines.length = 0;
-    removeGapLabels();
   }
 
   function setDirection(d) {
@@ -237,5 +261,5 @@ const guides = (() => {
     removeGapLabels();
   }
 
-  return { enable, disable, setDirection, setGapVisible, clearAll };
+  return { enable, disable, setDirection, setGapVisible, clearAll, nudge };
 })();
