@@ -1,5 +1,7 @@
 const measure = (() => {
   let highlight = null; // blue hover ring
+  let marginBox = null; // orange margin band (DevTools style)
+  let padBox    = null; // green padding band
   let panel     = null; // hover panel
   let hoverEl   = null; // selected element (may be an ancestor of pointEl)
   let pointEl   = null; // deepest element under the cursor
@@ -129,15 +131,36 @@ const measure = (() => {
 
   // ── Hover overlay ────────────────────────────────────────────
 
-  function showOverlay(el) {
-    const r = el.getBoundingClientRect();
-    Object.assign(highlight.style, {
-      display: 'block',
-      left:    r.left   + 'px',
-      top:     r.top    + 'px',
-      width:   r.width  + 'px',
-      height:  r.height + 'px',
+  function place(node, left, top, width, height) {
+    Object.assign(node.style, {
+      left: left + 'px', top: top + 'px', width: width + 'px', height: height + 'px',
     });
+  }
+
+  /**
+   * Position the hover ring and the margin/padding bands. Each band is a box
+   * whose borders are exactly as thick as the margin or padding they show.
+   */
+  function placeHover(el) {
+    const r  = el.getBoundingClientRect();
+    const cs = getComputedStyle(el);
+    const sides = (prop) => ['Top', 'Right', 'Bottom', 'Left']
+      .map(side => Math.max(0, parseFloat(cs[prop + side + (prop === 'border' ? 'Width' : '')]) || 0));
+    const [mt, mr, mb, ml] = sides('margin');
+    const [bt, br, bb, bl] = sides('border');
+    const [pt, pr, pb, pl] = sides('padding');
+
+    place(highlight, r.left, r.top, r.width, r.height);
+    place(marginBox, r.left - ml, r.top - mt, r.width + ml + mr, r.height + mt + mb);
+    marginBox.style.borderWidth = `${mt}px ${mr}px ${mb}px ${ml}px`;
+    place(padBox, r.left + bl, r.top + bt, r.width - bl - br, r.height - bt - bb);
+    padBox.style.borderWidth = `${pt}px ${pr}px ${pb}px ${pl}px`;
+    return r;
+  }
+
+  function showOverlay(el) {
+    const r = placeHover(el);
+    for (const n of [highlight, marginBox, padBox]) n.style.display = 'block';
     if (panel) { panel.remove(); panel = null; }
     panel = buildPanelEl(el, false);
     const p = panel;
@@ -251,10 +274,7 @@ const measure = (() => {
 
     const ring = document.createElement('div');
     ring.classList.add('msr-lock-ring');
-    Object.assign(ring.style, {
-      left: r.left + 'px', top: r.top + 'px',
-      width: r.width + 'px', height: r.height + 'px',
-    });
+    place(ring, r.left, r.top, r.width, r.height);
     ui.root.appendChild(ring);
 
     const p = buildPanelEl(el, true);
@@ -276,11 +296,7 @@ const measure = (() => {
   function repositionAll() {
     // Hover highlight
     if (hoverEl && highlight) {
-      const r = hoverEl.getBoundingClientRect();
-      Object.assign(highlight.style, {
-        left: r.left + 'px', top: r.top + 'px',
-        width: r.width + 'px', height: r.height + 'px',
-      });
+      const r = placeHover(hoverEl);
       if (panel) positionPanel(panel, r);
     }
 
@@ -295,10 +311,7 @@ const measure = (() => {
     }
     for (const lock of locks) {
       const r = lock.el.getBoundingClientRect();
-      Object.assign(lock.ring.style, {
-        left: r.left + 'px', top: r.top + 'px',
-        width: r.width + 'px', height: r.height + 'px',
-      });
+      place(lock.ring, r.left, r.top, r.width, r.height);
       positionPanel(lock.panel, r);
     }
 
@@ -329,10 +342,14 @@ const measure = (() => {
   function enable() {
     if (highlight) return;
     msrOverlay.setMeasure(true);
+    marginBox = document.createElement('div');
+    marginBox.classList.add('msr-margin-box');
+    padBox = document.createElement('div');
+    padBox.classList.add('msr-padding-box');
     highlight = document.createElement('div');
     highlight.classList.add('msr-hover-highlight');
-    highlight.style.display = 'none';
-    ui.root.appendChild(highlight);
+    for (const n of [marginBox, padBox, highlight]) n.style.display = 'none';
+    ui.root.append(marginBox, padBox, highlight);
     msrOverlay.el.addEventListener('mousemove', onMouseMove);
     msrOverlay.el.addEventListener('click', onClick);
     document.addEventListener('scroll', repositionAll, true);
@@ -349,6 +366,8 @@ const measure = (() => {
     window.removeEventListener('resize', repositionAll);
     msrOverlay.setMeasure(false);
     if (highlight) { highlight.remove(); highlight = null; }
+    if (marginBox) { marginBox.remove(); marginBox = null; }
+    if (padBox)    { padBox.remove();    padBox    = null; }
     if (panel)     { panel.remove();     panel     = null; }
     locks.forEach(({ ring, panel: p }) => { ring.remove(); p.remove(); });
     locks.length = 0;

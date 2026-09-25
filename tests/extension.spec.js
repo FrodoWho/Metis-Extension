@@ -664,3 +664,21 @@ test('collapsing hides the controls but keeps the active tool running', async ()
   await page.locator('.msr-tb-collapse').click();
   await expect(page.locator('.msr-tb-btn', { hasText: 'Measure' })).toBeVisible();
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Measure — margin / padding bands
+// ─────────────────────────────────────────────────────────────────────────────
+
+test('hovering shades the margin and padding bands', async () => {
+  await activateTool(worker, page, 'measure', true);
+  const bb = await page.locator('#blue-box').boundingBox();
+  await page.mouse.move(bb.x + bb.width / 2, bb.y + bb.height / 2);
+
+  const margin = await page.locator('.msr-margin-box').boundingBox();
+  const pad    = await page.locator('.msr-padding-box').boundingBox();
+  // Blue box: 20px margin, 16px padding, no border
+  expect(margin.x).toBeCloseTo(bb.x - 20, 0);
+  expect(margin.width).toBeCloseTo(bb.width + 40, 0);
+  expect(pad.x).toBeCloseTo(bb.x, 0);
+  expect(await page.locator('.msr-padding-box').evaluate(el => el.style.borderWidth)).toBe('16px');
+});

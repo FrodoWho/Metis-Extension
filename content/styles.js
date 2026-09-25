@@ -26,6 +26,19 @@ const MSR_CSS = `
   z-index: 2147483646; /* above lock rings (2147483645) */
 }
 
+/* Margin (orange) and padding (green) bands around the hovered element.
+   The border widths are set to the element's margin / padding in JS. */
+.msr-margin-box,
+.msr-padding-box {
+  position: fixed;
+  box-sizing: border-box;
+  border-style: solid;
+  pointer-events: none;
+  z-index: 2147483645;
+}
+.msr-margin-box  { border-color: rgba(246, 178, 107, 0.4); }
+.msr-padding-box { border-color: rgba(147, 196, 125, 0.45); }
+
 /* Locked measurement ring — orange, persists until clicked again */
 .msr-lock-ring {
   position: fixed;
