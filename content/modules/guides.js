@@ -8,6 +8,7 @@ const guides = (() => {
   let ghost         = null;
   let snapHighlight = null; // transient ring shown on snapped element
   let gapVisible    = false;
+  let pinned        = false; // guides scroll with the page instead of the screen
 
   // ── Snap helpers ─────────────────────────────────────────────
 
@@ -62,17 +63,50 @@ const guides = (() => {
 
   // ── Guide creation / removal ─────────────────────────────────
 
-  function coordOf(container) {
-    return parseFloat(container.dataset.orient === 'h' ? container.style.top : container.style.left);
+  // A guide's position is a viewport coordinate, or a page coordinate while
+  // pinned. It is drawn at position minus this offset.
+  function offset(orient) {
+    if (!pinned) return 0;
+    return orient === 'h' ? window.scrollY : window.scrollX;
   }
 
-  function setCoord(container, coord) {
-    container.style[container.dataset.orient === 'h' ? 'top' : 'left'] = coord + 'px';
-    container.querySelector('.msr-guide-label').textContent = `${Math.round(coord)}px`;
+  function coordOf(container) {
+    return parseFloat(container.dataset.pos);
+  }
+
+  function place(container) {
+    const orient = container.dataset.orient;
+    container.style[orient === 'h' ? 'top' : 'left'] = (coordOf(container) - offset(orient)) + 'px';
+  }
+
+  function setCoord(container, pos) {
+    container.dataset.pos = pos;
+    place(container);
+    container.querySelector('.msr-guide-label').textContent = `${Math.round(pos)}px`;
     if (gapVisible) renderGaps();
   }
 
-  function createGuide(coord) {
+  function onScroll() {
+    lines.forEach(place);
+    if (gapVisible) renderGaps();
+  }
+
+  /** Pin guides to the page (they scroll with it) or to the screen. */
+  function setPinned(on) {
+    if (on === pinned) return;
+    // Convert positions so every guide stays exactly where it is on screen
+    for (const g of lines) {
+      const scroll = g.dataset.orient === 'h' ? window.scrollY : window.scrollX;
+      setCoord(g, coordOf(g) + (on ? scroll : -scroll));
+    }
+    pinned = on;
+    if (on) window.addEventListener('scroll', onScroll, { passive: true });
+    else    window.removeEventListener('scroll', onScroll);
+    onScroll();
+  }
+
+  /** viewportCoord: where on screen the guide goes. */
+  function createGuide(viewportCoord) {
     const container = document.createElement('div');
     container.dataset.orient = direction;
     container.classList.add('msr-guide');
@@ -91,7 +125,7 @@ const guides = (() => {
     container.append(line, hit, label);
     ui.root.appendChild(container);
     lines.push(container);
-    setCoord(container, coord);
+    setCoord(container, viewportCoord + offset(direction));
   }
 
   /** Drag a guide to move it. A press without movement removes it. */
@@ -107,7 +141,7 @@ const guides = (() => {
       if (!moved && Math.hypot(ev.clientX - startX, ev.clientY - startY) < DRAG_PX) return;
       moved = true;
       const raw = orient === 'h' ? ev.clientY : ev.clientX;
-      setCoord(container, snapCoord(raw, ev, orient).coord);
+      setCoord(container, snapCoord(raw, ev, orient).coord + offset(orient));
     }
 
     if (ghost) ghost.style.display = 'none';
@@ -163,7 +197,7 @@ const guides = (() => {
         .sort((a, b) => a - b);
 
       for (let i = 0; i < coords.length - 1; i++) {
-        const mid  = ((coords[i] + coords[i + 1]) / 2) + 'px';
+        const mid  = ((coords[i] + coords[i + 1]) / 2 - offset(orient)) + 'px';
         const text = Math.round(coords[i + 1] - coords[i]) + 'px';
         if (orient === 'v') addGapLabel(text, mid, '50%');
         else                addGapLabel(text, '50%', mid);
@@ -261,5 +295,5 @@ const guides = (() => {
     removeGapLabels();
   }
 
-  return { enable, disable, setDirection, setGapVisible, clearAll, nudge };
+  return { enable, disable, setDirection, setGapVisible, setPinned, clearAll, nudge };
 })();

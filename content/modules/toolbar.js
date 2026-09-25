@@ -1,11 +1,13 @@
 const toolbar = (() => {
   let container = null;
-  let btnMeasure, btnGuides, btnGrid, btnMockup, btnV, btnH, btnGap, btnPx, btnRem, btnDiff, btnCollapse;
+  let btnMeasure, btnGuides, btnGrid, btnMockup, btnV, btnH, btnGap, btnPin, btnPx, btnRem, btnDiff, btnCollapse;
   let rowMeasure, rowGuides, rowGrid, rowMockup, viewport, fileInput;
   const gridInputs = {};
   const state = { measure: false, guides: false, grid: false, mockup: false, direction: 'v', gapVisible: false };
   // Remembered across pages
-  const prefs = { left: null, top: null, collapsed: false, units: 'px', grid: { ...grid.settings } };
+  const prefs = {
+    left: null, top: null, collapsed: false, units: 'px', pinGuides: false, grid: { ...grid.settings },
+  };
 
   function getShortcut() {
     const platform = (navigator.userAgentData?.platform ?? navigator.platform ?? '');
@@ -121,6 +123,9 @@ const toolbar = (() => {
       setPressed(btnGap, state.gapVisible);
     }, { pressed: false });
     btnGap.id = 'msr-tb-gap';
+    btnPin = button(rowGuides, 'Pin', 'Pin guides to the page so they scroll with it',
+      () => setPinned(!prefs.pinGuides), { pressed: false });
+    btnPin.id = 'msr-tb-pin';
     el('div', 'msr-tb-sep', rowGuides);
     button(rowGuides, 'Clear', 'Clear all guides', () => guides.clearAll()).id = 'msr-tb-clear';
 
@@ -169,6 +174,7 @@ const toolbar = (() => {
       Object.assign(prefs, saved);
       setCollapsed(prefs.collapsed);
       setUnits(prefs.units);
+      setPinned(prefs.pinGuides);
       grid.set(prefs.grid);
       for (const [key, input] of Object.entries(gridInputs)) input.value = prefs.grid[key];
       if (prefs.left !== null) moveTo(prefs.left, prefs.top);
@@ -180,6 +186,13 @@ const toolbar = (() => {
     measure.setUnits(u);
     setPressed(btnPx,  u === 'px');
     setPressed(btnRem, u === 'rem');
+    persist();
+  }
+
+  function setPinned(on) {
+    prefs.pinGuides = on;
+    guides.setPinned(on);
+    setPressed(btnPin, on);
     persist();
   }
 

@@ -851,3 +851,27 @@ test('Overlay lays a design image over the page with opacity, scale and diff', a
   await page.locator('#msr-tb-row-mockup [aria-label="Remove image"]').click();
   await expect(wrap).toHaveCount(0);
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Guides — pinned to the page
+// ─────────────────────────────────────────────────────────────────────────────
+
+test('pinned guides scroll with the page and keep their page coordinate', async () => {
+  await page.addStyleTag({ content: 'body { padding-bottom: 2000px; }' });
+  await toggleToolbar(worker, page);
+  await page.keyboard.press('g');
+  await page.keyboard.press('h');
+  await page.locator('#msr-tb-pin').click();
+  await page.mouse.click(700, 300, { modifiers: ['Shift'] });
+  const guide = page.locator('.msr-guide:not(.msr-guide-ghost)');
+  await expect(page.locator('.msr-guide-label')).toHaveText('300px');
+
+  await page.evaluate(() => window.scrollBy(0, 100));
+  await expect.poll(() => guide.evaluate(el => el.style.top)).toBe('200px');
+  await expect(page.locator('.msr-guide-label')).toHaveText('300px');
+
+  // Unpinning keeps it where it is on screen
+  await page.locator('#msr-tb-pin').click();
+  expect(await guide.evaluate(el => el.style.top)).toBe('200px');
+  await expect(page.locator('.msr-guide-label')).toHaveText('200px');
+});
