@@ -35,9 +35,19 @@ const ui = (() => {
     if (host.parentNode !== parent) parent.appendChild(host);
   }
 
-  /** Topmost page element at (x, y), looking through all extension UI. */
+  /**
+   * Topmost page element at (x, y), looking through all extension UI and
+   * into open shadow roots (web components).
+   */
   function elementAt(x, y) {
-    return document.elementsFromPoint(x, y).find(el => el !== host) ?? null;
+    const notUs = e => e !== host;
+    let el = document.elementsFromPoint(x, y).find(notUs) ?? null;
+    while (el?.shadowRoot) {
+      const inner = el.shadowRoot.elementsFromPoint(x, y).find(notUs);
+      if (!inner || !el.shadowRoot.contains(inner)) break;
+      el = inner;
+    }
+    return el;
   }
 
   /** chrome.storage.local, shared across sites. Never throws. */

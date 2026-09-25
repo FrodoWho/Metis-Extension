@@ -745,3 +745,25 @@ test('toolbar shows the viewport size and follows resizes', async () => {
   await page.setViewportSize({ width: 768, height: 600 });
   await expect(page.locator('.msr-tb-viewport')).toHaveText('768 × 600');
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Measure — web components (open shadow DOM)
+// ─────────────────────────────────────────────────────────────────────────────
+
+test('measures elements inside an open shadow root, arrow up reaches the host', async () => {
+  await page.evaluate(() => {
+    const card = document.createElement('x-card');
+    card.attachShadow({ mode: 'open' }).innerHTML =
+      '<div id="deep" style="width:120px; height:40px; background:#0a0">Deep</div>';
+    document.body.appendChild(card);
+  });
+  await toggleToolbar(worker, page);
+  await page.keyboard.press('m');
+
+  const deep = await page.locator('#deep').boundingBox();
+  await page.mouse.move(deep.x + 10, deep.y + 10);
+  await expect(page.locator('.msr-panel-tag')).toHaveText('div#deep');
+
+  await page.keyboard.press('ArrowUp');
+  await expect(page.locator('.msr-panel-tag')).toHaveText('x-card');
+});

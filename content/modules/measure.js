@@ -243,7 +243,7 @@ const measure = (() => {
 
   /** ↑ — select the parent of the current element. */
   function selectParent() {
-    const parent = hoverEl?.parentElement;
+    const parent = hoverEl && (hoverEl.parentElement ?? hoverEl.getRootNode().host);
     if (!parent) return false;
     childStack.push(hoverEl);
     select(parent);
@@ -371,7 +371,7 @@ const measure = (() => {
     // Locked elements — sweep stale / hidden, then reposition the rest
     for (let i = locks.length - 1; i >= 0; i--) {
       const el = locks[i].el;
-      if (!document.contains(el) || (el.offsetWidth === 0 && el.offsetHeight === 0)) {
+      if (!el.isConnected || (el.offsetWidth === 0 && el.offsetHeight === 0)) {
         locks[i].ring.remove();
         locks[i].panel.remove();
         locks.splice(i, 1);
