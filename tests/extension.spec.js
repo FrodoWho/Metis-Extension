@@ -633,3 +633,34 @@ test('toolbar and measuring work while a modal dialog is open', async () => {
   await page.evaluate(() => document.getElementById('d').close());
   await expect.poll(() => page.evaluate(() => document.querySelector('metis-root').parentNode.nodeName)).toBe('HTML');
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Toolbar — remembered position, collapsing
+// ─────────────────────────────────────────────────────────────────────────────
+
+test('toolbar position and collapsed state survive a page reload', async () => {
+  await toggleToolbar(worker, page);
+  const grip = await page.locator('.msr-tb-grip').boundingBox();
+  await page.mouse.move(grip.x + 4, grip.y + 4);
+  await page.mouse.down();
+  await page.mouse.move(500, 400, { steps: 5 });
+  await page.mouse.up();
+  await page.locator('.msr-tb-collapse').click();
+  const moved = await page.locator('#msr-toolbar').boundingBox();
+
+  await page.reload();
+  await toggleToolbar(worker, page);
+  await expect.poll(async () => (await page.locator('#msr-toolbar').boundingBox()).x).toBeCloseTo(moved.x, 0);
+  await expect(page.locator('.msr-tb-btn', { hasText: 'Measure' })).toBeHidden();
+});
+
+test('collapsing hides the controls but keeps the active tool running', async () => {
+  await toggleToolbar(worker, page);
+  await page.keyboard.press('m');
+  await page.locator('.msr-tb-collapse').click();
+  await expect(page.locator('.msr-tb-btn', { hasText: 'Measure' })).toBeHidden();
+  await expect(page.locator('.msr-hover-highlight')).toHaveCount(1);
+
+  await page.locator('.msr-tb-collapse').click();
+  await expect(page.locator('.msr-tb-btn', { hasText: 'Measure' })).toBeVisible();
+});

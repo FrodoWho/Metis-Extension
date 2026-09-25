@@ -1,7 +1,8 @@
 const toolbar = (() => {
   let container = null;
-  let btnMeasure, btnGuides, btnV, btnH, btnGap, rowSub;
+  let btnMeasure, btnGuides, btnV, btnH, btnGap, btnCollapse, rowSub;
   const state = { measure: false, guides: false, direction: 'v', gapVisible: false };
+  const prefs = { left: null, top: null, collapsed: false }; // remembered across pages
 
   function getShortcut() {
     const platform = (navigator.userAgentData?.platform ?? navigator.platform ?? '');
@@ -45,7 +46,7 @@ const toolbar = (() => {
 
     const grip = el('div', 'msr-tb-grip', rowMain);
     grip.textContent = '⠿';
-    grip.title = 'Drag to move, double-click to reset';
+    grip.title = `Drag to move, double-click to reset. Toggle toolbar: ${getShortcut()}`;
     makeDraggable(grip);
 
     btnMeasure = button(rowMain, '📐 Measure', 'Measure tool',
@@ -57,6 +58,8 @@ const toolbar = (() => {
     el('div', 'msr-tb-sep', rowMain);
     button(rowMain, '☕', 'Support on Ko-fi',
       () => window.open('https://ko-fi.com/FrodoWho', '_blank'), { className: 'msr-tb-kofi' });
+    btnCollapse = button(rowMain, '–', 'Collapse toolbar', () => setCollapsed(!prefs.collapsed),
+      { className: 'msr-tb-collapse' });
     button(rowMain, '✕', 'Close toolbar', hide, { key: 'Escape', className: 'msr-tb-close' });
 
     // ── Row 2: guides sub-options ─────────────────────────────
@@ -79,6 +82,26 @@ const toolbar = (() => {
 
     ui.root.appendChild(container);
     window.addEventListener('resize', clamp);
+
+    ui.store.get('toolbar', prefs).then((saved) => {
+      Object.assign(prefs, saved);
+      setCollapsed(prefs.collapsed);
+      if (prefs.left !== null) moveTo(prefs.left, prefs.top);
+    });
+  }
+
+  function persist() { ui.store.set('toolbar', prefs); }
+
+  /** Shrink to grip + expand button; the active tool keeps running. */
+  function setCollapsed(on) {
+    prefs.collapsed = on;
+    container.classList.toggle('msr-tb-collapsed', on);
+    btnCollapse.textContent = on ? '📏' : '–';
+    btnCollapse.setAttribute('aria-label', on ? 'Expand toolbar' : 'Collapse toolbar');
+    btnCollapse.title = btnCollapse.getAttribute('aria-label');
+    btnCollapse.setAttribute('aria-expanded', String(!on));
+    persist();
+    clamp();
   }
 
   // ── Dragging ─────────────────────────────────────────────────
@@ -105,12 +128,19 @@ const toolbar = (() => {
       const onMove = (ev) => moveTo(ev.clientX - dx, ev.clientY - dy);
       handle.setPointerCapture(e.pointerId);
       handle.addEventListener('pointermove', onMove);
-      handle.addEventListener('lostpointercapture',
-        () => handle.removeEventListener('pointermove', onMove), { once: true });
+      handle.addEventListener('lostpointercapture', () => {
+        handle.removeEventListener('pointermove', onMove);
+        if (!container.style.left) return; // pressed without dragging
+        prefs.left = parseFloat(container.style.left);
+        prefs.top  = parseFloat(container.style.top);
+        persist();
+      }, { once: true });
     });
     handle.addEventListener('dblclick', () => {
       container.style.left = '';
       container.style.top  = '';
+      prefs.left = prefs.top = null;
+      persist();
     });
   }
 
@@ -192,6 +222,7 @@ const toolbar = (() => {
 
   function show() {
     container.classList.remove('msr-tb-hidden');
+    clamp(); // a remembered position may not fit this window
     document.addEventListener('keydown', onKeyDown, true);
   }
 

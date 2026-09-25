@@ -328,6 +328,13 @@ const MSR_CSS = `
   white-space: nowrap;
 }
 
+.msr-tb-collapse { color: #555; padding: 5px 7px; }
+.msr-tb-collapse:hover { color: #999; background: #1e1e1e; }
+
+/* Collapsed: only the grip and the expand button remain */
+#msr-toolbar.msr-tb-collapsed .msr-tb-row-main > :not(.msr-tb-grip, .msr-tb-collapse),
+#msr-toolbar.msr-tb-collapsed .msr-tb-row-sub { display: none; }
+
 .msr-tb-close { color: #555; padding: 5px 7px; }
 .msr-tb-close:hover { color: #999; background: #1e1e1e; }
 

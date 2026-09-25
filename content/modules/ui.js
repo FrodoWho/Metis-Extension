@@ -40,9 +40,22 @@ const ui = (() => {
     return document.elementsFromPoint(x, y).find(el => el !== host) ?? null;
   }
 
+  /** chrome.storage.local, shared across sites. Never throws. */
+  const store = {
+    async get(key, fallback) {
+      try { return (await chrome.storage.local.get(key))[key] ?? fallback; }
+      catch { return fallback; }
+    },
+    set(key, value) {
+      try { chrome.storage.local.set({ [key]: value }).catch(() => {}); }
+      catch { /* extension reloaded underneath the page */ }
+    },
+  };
+
   return {
     get root() { ensure(); return root; },
     get host() { ensure(); return host; },
     elementAt,
+    store,
   };
 })();
