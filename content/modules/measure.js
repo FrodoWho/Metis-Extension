@@ -96,7 +96,8 @@ const measure = (() => {
     const cs = getComputedStyle(el);
     return {
       w: Math.round(r.width),  h: Math.round(r.height),
-      x: Math.round(r.left),   y: Math.round(r.top),
+      // Page coordinates: they don't change while scrolling and match a design
+      x: Math.round(r.left + window.scrollX), y: Math.round(r.top + window.scrollY),
       padTop: cs.paddingTop,    padRight:    cs.paddingRight,
       padBottom: cs.paddingBottom, padLeft:  cs.paddingLeft,
       marTop: cs.marginTop,     marRight:    cs.marginRight,
@@ -336,19 +337,38 @@ const measure = (() => {
     return locks.some(l => l.el === el);
   }
 
+  /**
+   * Locks live in page coordinates (position: absolute), so they scroll with
+   * the page natively instead of chasing it from scroll events, and their
+   * panel stays with the element instead of sticking to the screen edge. The
+   * panel sits below the element, or above it where the page ends.
+   * ponytail: inside an open modal <dialog> "page" means the dialog's box.
+   */
+  function placeLock(lock) {
+    const r  = lock.el.getBoundingClientRect();
+    const sx = window.scrollX;
+    const sy = window.scrollY;
+    const p  = lock.panel;
+    const gap = 8;
+    place(lock.ring, r.left + sx, r.top + sy, r.width, r.height);
+
+    p.style.left = p.style.top = '0px'; // don't let its old spot stretch the page
+    let top = r.bottom + sy + gap;
+    if (top + p.offsetHeight > document.documentElement.scrollHeight) {
+      top = Math.max(gap, r.top + sy - p.offsetHeight - gap);
+    }
+    p.style.left = (Math.max(gap, Math.min(r.left, window.innerWidth - p.offsetWidth - gap)) + sx) + 'px';
+    p.style.top  = top + 'px';
+  }
+
   function lockEl(el) {
     if (isLocked(el)) return;
-    const r  = el.getBoundingClientRect();
-
     const ring = document.createElement('div');
     ring.classList.add('msr-lock-ring');
-    place(ring, r.left, r.top, r.width, r.height);
     ui.root.appendChild(ring);
-
-    const p = buildPanelEl(el, true);
-    requestAnimationFrame(() => positionPanel(p, r));
-
-    locks.push({ el, ring, panel: p });
+    const lock = { el, ring, panel: buildPanelEl(el, true) };
+    locks.push(lock);
+    placeLock(lock);
   }
 
   function unlockEl(el) {
@@ -357,6 +377,13 @@ const measure = (() => {
     locks[idx].ring.remove();
     locks[idx].panel.remove();
     locks.splice(idx, 1);
+  }
+
+  /** Clear button: remove every locked measurement. */
+  function clearLocks() {
+    locks.forEach(({ ring, panel: p }) => { ring.remove(); p.remove(); });
+    locks.length = 0;
+    renderDistances();
   }
 
   // ── Reposition on scroll / resize ───────────────────────────
@@ -377,11 +404,9 @@ const measure = (() => {
         locks.splice(i, 1);
       }
     }
-    for (const lock of locks) {
-      const r = lock.el.getBoundingClientRect();
-      place(lock.ring, r.left, r.top, r.width, r.height);
-      positionPanel(lock.panel, r);
-    }
+    // Page scrolling leaves these unchanged; this catches inner scrollers,
+    // fixed elements and resizes.
+    locks.forEach(placeLock);
 
     renderDistances();
   }
@@ -411,10 +436,9 @@ const measure = (() => {
     units = u;
     if (hoverEl && highlight) showOverlay(hoverEl);
     for (const lock of locks) {
-      const r = lock.el.getBoundingClientRect();
       lock.panel.remove();
       lock.panel = buildPanelEl(lock.el, true);
-      positionPanel(lock.panel, r);
+      placeLock(lock);
     }
   }
 
@@ -484,13 +508,12 @@ const measure = (() => {
     if (marginBox) { marginBox.remove(); marginBox = null; }
     if (padBox)    { padBox.remove();    padBox    = null; }
     if (panel)     { panel.remove();     panel     = null; }
-    locks.forEach(({ ring, panel: p }) => { ring.remove(); p.remove(); });
-    locks.length = 0;
+    clearLocks();
     clearDistances();
     hoverEl = null;
     pointEl = null;
     childStack.length = 0;
   }
 
-  return { enable, disable, selectParent, selectChild, setUnits, copyCss };
+  return { enable, disable, selectParent, selectChild, setUnits, copyCss, clearLocks };
 })();

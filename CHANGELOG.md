@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+### Measure
+- **Clear**-knop in de Measure-rij: haalt alle gelockte metingen in één keer weg.
+- Gelockte metingen scrollen mee met de pagina. Het paneel blijft bij zijn element in plaats van aan de rand van het scherm te plakken.
+- `x` en `y` tonen de positie op de pagina in plaats van in het scherm, dus ze veranderen niet meer bij scrollen.
+
 ## 0.2.1 (2026-09-28)
 
 ### Firefox

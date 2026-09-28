@@ -39,9 +39,10 @@ const MSR_CSS = `
 .msr-margin-box  { border-color: rgba(246, 178, 107, 0.4); }
 .msr-padding-box { border-color: rgba(147, 196, 125, 0.45); }
 
-/* Locked measurement ring — orange, persists until clicked again */
+/* Locked measurement ring — orange, persists until clicked again. Absolute
+   (page coordinates) so it scrolls with the page, like its panel. */
 .msr-lock-ring {
-  position: fixed;
+  position: absolute;
   pointer-events: none;
   border: 2px solid rgba(251, 146, 60, 0.85);
   background: rgba(251, 146, 60, 0.06);
@@ -50,6 +51,7 @@ const MSR_CSS = `
 }
 
 /* Locked panel — same layout as hover panel, with orange title */
+.msr-panel.msr-panel-locked { position: absolute; }
 .msr-panel-locked .msr-panel-title { color: rgba(251, 146, 60, 0.9); }
 .msr-panel-locked .msr-panel-key   { color: rgba(251, 146, 60, 0.7); }
 

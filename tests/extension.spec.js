@@ -931,3 +931,52 @@ test('toolbar styles and the design overlay work under a strict CSP', async () =
   await (await chooser).setFiles(file);
   await expect.poll(async () => (await page.locator('.msr-mockup canvas').boundingBox())?.width).toBeCloseTo(400, 0);
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Measure — clearing and pinned locks
+// ─────────────────────────────────────────────────────────────────────────────
+
+test('Clear in the measure row removes all locked measurements', async () => {
+  await toggleToolbar(worker, page);
+  await page.keyboard.press('m');
+  for (const id of ['#blue-box', '#red-box']) {
+    const bb = await page.locator(id).boundingBox();
+    await page.mouse.click(bb.x + bb.width / 2, bb.y + bb.height / 2);
+  }
+  await expect(page.locator('.msr-lock-ring')).toHaveCount(2);
+
+  await page.locator('#msr-tb-clear-locks').click();
+  await expect(page.locator('.msr-lock-ring')).toHaveCount(0);
+  await expect(page.locator('.msr-panel-locked')).toHaveCount(0);
+  await expect(page.locator('.msr-hover-highlight')).toHaveCount(1); // still measuring
+});
+
+test('locked measurements scroll with the page, panel included', async () => {
+  await page.addStyleTag({ content: 'body { padding-bottom: 2000px; }' });
+  await activateTool(worker, page, 'measure', true);
+  const bb = await page.locator('#blue-box').boundingBox();
+  await page.mouse.click(bb.x + bb.width / 2, bb.y + bb.height / 2);
+  const ringBefore  = await page.locator('.msr-lock-ring').boundingBox();
+  const panelBefore = await page.locator('.msr-panel-locked').boundingBox();
+
+  await page.evaluate(() => window.scrollBy(0, 200));
+  const ringAfter  = await page.locator('.msr-lock-ring').boundingBox();
+  const panelAfter = await page.locator('.msr-panel-locked').boundingBox();
+  const el         = await page.locator('#blue-box').boundingBox();
+
+  expect(ringAfter.y).toBeCloseTo(el.y, 0);
+  expect(ringBefore.y - ringAfter.y).toBeCloseTo(200, 0);
+  expect(panelBefore.y - panelAfter.y).toBeCloseTo(200, 0); // no longer stuck to the screen
+});
+
+test('x and y are page coordinates, the same after scrolling', async () => {
+  await page.addStyleTag({ content: 'body { padding-bottom: 2000px; }' });
+  await activateTool(worker, page, 'measure', true);
+  const top = await page.locator('#blue-box').evaluate(el => Math.round(el.getBoundingClientRect().top));
+
+  await page.evaluate(() => window.scrollBy(0, 50));
+  const bb = await page.locator('#blue-box').boundingBox();
+  await page.mouse.move(bb.x + bb.width / 2, bb.y + bb.height / 2);
+  await expect(page.locator('.msr-panel').first()).toContainText(`${top}px`);
+  await expect(page.locator('.msr-panel').first()).not.toContainText(`${top - 50}px`);
+});

@@ -107,6 +107,8 @@ const toolbar = (() => {
     btnRem = button(rowMeasure, 'rem', 'Show lengths in rem', () => setUnits('rem'), { pressed: false });
     el('div', 'msr-tb-sep', rowMeasure);
     button(rowMeasure, 'Copy CSS', 'Copy CSS of the selected element', () => measure.copyCss(), { key: 'C' });
+    el('div', 'msr-tb-sep', rowMeasure);
+    button(rowMeasure, 'Clear', 'Clear all locked measurements', () => measure.clearLocks()).id = 'msr-tb-clear-locks';
 
     // ── Guides sub-options ────────────────────────────────────
     rowGuides = el('div', 'msr-tb-row-sub msr-tb-hidden', container);
