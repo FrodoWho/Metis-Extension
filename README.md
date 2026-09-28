@@ -9,6 +9,14 @@ Chrome extension for inspecting element dimensions and placing alignment guides 
 3. Click **Load unpacked** and select `dist/chrome`
 4. The 📏 icon appears in the toolbar, click it or press **Alt+Shift+M (⌥⇧M on Mac)** to toggle
 
+### Firefox
+
+1. Run `npm run build`
+2. Open `about:debugging#/runtime/this-firefox` and click **Load Temporary Add-on…**
+3. Select `dist/firefox/manifest.json`
+
+Works from Firefox 140. On sites with a strict Content-Security-Policy the toolbar keeps its styling from Firefox 153 on.
+
 ## Usage
 
 | Action | How |

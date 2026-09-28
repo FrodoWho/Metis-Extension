@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.2.1 (2026-09-28)
+
+### Firefox
+- Klaar voor addons.mozilla.org: Mozilla's validator (`web-ext lint`) geeft geen fouten of waarschuwingen meer.
+- De toolbar houdt zijn opmaak op sites met een strikte Content-Security-Policy (vanaf Firefox 153, eerdere versies vallen terug op de oude manier).
+- De design-overlay wordt niet meer door de CSP van een site tegengehouden.
+- Een bestand dat geen afbeelding is, geeft nu een melding in plaats van stil te falen.
+
+### Voor developers
+- Nieuwe test voor een pagina met strikte CSP (54 tests).
+
+### Bekend
+- Automatisch testen in een echte Firefox lukt nog niet; test de Firefox-versie handmatig voor een release.
+
 ## 0.2.0 (2026-09-28)
 
 ### Nieuw
