@@ -18,13 +18,29 @@ const ui = (() => {
     return modals[modals.length - 1] ?? document.documentElement;
   }
 
+  /**
+   * A constructed stylesheet is CSSOM, so a strict page CSP (style-src) can't
+   * block it the way it blocks a <style> element in Firefox. Firefox only lets
+   * content scripts set adoptedStyleSheets from version 153; before that the
+   * assignment throws and we fall back to <style>.
+   */
+  function addStyles() {
+    try {
+      const sheet = new CSSStyleSheet();
+      sheet.replaceSync(MSR_CSS);
+      root.adoptedStyleSheets = [sheet];
+    } catch {
+      const style = document.createElement('style');
+      style.textContent = MSR_CSS;
+      root.appendChild(style);
+    }
+  }
+
   function ensure() {
     if (!host) {
       host = document.createElement('metis-root');
       root = host.attachShadow({ mode: 'open' });
-      const style = document.createElement('style');
-      style.textContent = MSR_CSS;
-      root.appendChild(style);
+      addStyles();
       new MutationObserver(ensure).observe(document.documentElement, {
         subtree: true, childList: true, attributes: true, attributeFilter: ['open'],
       });

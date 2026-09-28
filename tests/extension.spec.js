@@ -823,7 +823,7 @@ test('Overlay lays a design image over the page with opacity, scale and diff', a
   await (await chooser).setFiles(file);
 
   const wrap = page.locator('.msr-mockup');
-  const img  = page.locator('.msr-mockup img');
+  const img  = page.locator('.msr-mockup canvas');
   await expect(img).toBeVisible();
   expect(await wrap.evaluate(el => el.style.opacity)).toBe('0.5');
   await expect.poll(async () => (await img.boundingBox()).width).toBeCloseTo(400, 0);
@@ -907,4 +907,27 @@ test('rulers show while placing guides and a guide can be dragged out of them', 
 
   await page.keyboard.press('m');
   await expect(page.locator('.msr-ruler')).toHaveCount(0);
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Strict Content-Security-Policy (Firefox applies page CSP to content scripts)
+// ─────────────────────────────────────────────────────────────────────────────
+
+test('toolbar styles and the design overlay work under a strict CSP', async () => {
+  await page.route('http://localhost:4321/csp', r => r.fulfill({
+    contentType: 'text/html',
+    headers: { 'Content-Security-Policy': "default-src 'self'; style-src 'self'; img-src 'self'" },
+    body: '<!doctype html><h1>CSP page</h1>',
+  }));
+  await page.goto('http://localhost:4321/csp');
+  await toggleToolbar(worker, page);
+
+  const bg = await page.locator('.msr-tb-row-main').evaluate(el => getComputedStyle(el).backgroundColor);
+  expect(bg).toBe('rgb(17, 17, 17)');
+
+  const file = await makePng(400, 300);
+  const chooser = page.waitForEvent('filechooser');
+  await page.keyboard.press('o');
+  await (await chooser).setFiles(file);
+  await expect.poll(async () => (await page.locator('.msr-mockup canvas').boundingBox())?.width).toBeCloseTo(400, 0);
 });

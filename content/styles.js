@@ -352,7 +352,7 @@ const MSR_CSS = `
   pointer-events: none;
   z-index: 2147483642;
 }
-.msr-mockup img {
+.msr-mockup canvas {
   display: block;
   flex: none;
   max-width: none;
