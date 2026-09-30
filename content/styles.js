@@ -449,6 +449,17 @@ const MSR_CSS = `
 
 .msr-tb-btn.msr-tb-btn-active { background: #6366f1; color: #fff; }
 
+.msr-tb-btn:disabled { color: #444; background: transparent; cursor: not-allowed; text-decoration: line-through; }
+
+.msr-tb-note {
+  font-size: 9px;
+  color: #fbbf24;
+  padding: 0 6px 0 2px;
+  white-space: nowrap;
+  user-select: none;
+}
+.msr-tb-note[hidden] { display: none; }
+
 .msr-tb-kofi { color: #555; padding: 5px 7px; }
 .msr-tb-kofi:hover { color: #fb923c; background: #1e1e1e; }
 

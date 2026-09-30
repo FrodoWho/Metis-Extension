@@ -40,7 +40,7 @@ Works from Firefox 140. On sites with a strict Content-Security-Policy the toolb
 | Pin to page | Click **Pin** so guides scroll with the page (remembered) |
 | Clear all guides | Click **Clear** |
 | Snap to element | Guides auto-snap to element edges/centers (hold **Shift** to bypass) |
-| **Layout grid** | Click **▦ Grid** or press **L**, set columns, gutter, max width and margin (remembered) |
+| **Layout grid** | Click **▦ Grid** or press **L**. **Auto** reads the page's own grid from its CSS (CSS grid tracks, or the column widths in flex and float rows like Bootstrap's, plus the container's max-width). Without a grid on the page, Auto is unavailable and says so. Type values to use your own grid (remembered) |
 | **Design overlay** | Click **🖼 Overlay** or press **O**, pick an image, set opacity, scale, alignment or **Diff** |
 | Turn tool off / close | **Esc** (first the active tool, then the toolbar) |
 

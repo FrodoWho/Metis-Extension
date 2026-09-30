@@ -789,6 +789,83 @@ test('Grid draws columns from the settings and L toggles it', async () => {
   await expect(page.locator('.msr-grid')).toHaveCount(0);
 });
 
+test('Grid Auto reads columns, gutter and content width from the page CSS', async () => {
+  await page.evaluate(() => {
+    const wrap = document.body.appendChild(document.createElement('div'));
+    wrap.style.cssText = 'max-width: 1000px; margin: 0 auto; padding: 0 20px';
+    const g = wrap.appendChild(document.createElement('div'));
+    g.id = 'page-grid';
+    g.style.cssText = 'display: grid; grid-template-columns: repeat(6, 1fr); column-gap: 16px';
+    for (let i = 0; i < 6; i++) g.appendChild(document.createElement('div')).style.height = '10px';
+  });
+  const values = () => page.locator('#msr-tb-row-grid input').evaluateAll(els => els.map(e => e.value));
+
+  await toggleToolbar(worker, page);
+  await page.keyboard.press('l');
+  // content-box: 1000 max-width + 2 × 20 padding
+  expect(await values()).toEqual(['6', '16', '1040', '20']);
+  const ours   = await page.locator('.msr-grid-inner > div').nth(2).boundingBox();
+  const theirs = await page.locator('#page-grid > div').nth(2).boundingBox();
+  expect(ours.x).toBeCloseTo(theirs.x, 0);
+  expect(ours.width).toBeCloseTo(theirs.width, 0);
+
+  // Auto off: back to your own values
+  const auto = page.locator('#msr-tb-grid-auto');
+  await auto.click();
+  await expect(auto).toHaveAttribute('aria-pressed', 'false');
+  expect(await values()).toEqual(['12', '24', '1200', '24']);
+  await auto.click();
+
+  // No grid on the page: Auto is unavailable, with a note, and your values are drawn
+  const setDisplay = d => page.evaluate(d => { document.getElementById('page-grid').style.display = d; }, d);
+  const note = page.locator('.msr-tb-note');
+  await expect(note).toBeHidden();
+  await setDisplay('block');
+  await page.keyboard.press('l');
+  await page.keyboard.press('l');
+  await expect(auto).toBeDisabled();
+  await expect(auto).toHaveAttribute('aria-pressed', 'false');
+  await expect(note).toBeVisible();
+  expect(await values()).toEqual(['12', '24', '1200', '24']);
+
+  // The Auto preference survives: it's back as soon as there's a grid again
+  await setDisplay('grid');
+  await page.keyboard.press('l');
+  await page.keyboard.press('l');
+  await expect(auto).toBeEnabled();
+  await expect(auto).toHaveAttribute('aria-pressed', 'true');
+  await expect(note).toBeHidden();
+  expect((await values())[0]).toBe('6');
+});
+
+test('Grid Auto reads a Bootstrap-style flex grid from its rows', async () => {
+  await page.evaluate(() => {
+    const div = (parent, css) => {
+      const d = parent.appendChild(document.createElement('div'));
+      d.style.cssText = 'box-sizing: border-box; ' + css;
+      return d;
+    };
+    const wrap = div(document.body, 'max-width: 960px; margin: 0 auto; padding: 0 12px');
+    for (const widths of [['66.6667%', '33.3333%'], ['25%', '25%', '25%', '25%']]) {
+      const row = div(wrap, 'display: flex; flex-wrap: wrap; margin: 0 -12px');
+      row.className = 'row';
+      for (const w of widths) div(row, `width: ${w}; padding: 0 12px; height: 10px`);
+    }
+  });
+  await toggleToolbar(worker, page);
+  await page.keyboard.press('l');
+  const values = await page.locator('#msr-tb-row-grid input').evaluateAll(els => els.map(e => e.value));
+  // 2/3 + 1/3 needs 3 columns, quarters 4: together 12
+  expect(values).toEqual(['12', '24', '960', '12']);
+
+  // The 1/3 column starts at column 9, the third quarter at column 7
+  const contentLeft = (row, i) => page.locator('.row').nth(row).locator('> div').nth(i)
+    .evaluate(d => d.getBoundingClientRect().left + parseFloat(getComputedStyle(d).paddingLeft));
+  const colLeft = async i => (await page.locator('.msr-grid-inner > div').nth(i).boundingBox()).x;
+  expect(await colLeft(8)).toBeCloseTo(await contentLeft(0, 1), 0);
+  expect(await colLeft(6)).toBeCloseTo(await contentLeft(1, 2), 0);
+});
+
 test('the grid does not block measuring', async () => {
   await toggleToolbar(worker, page);
   await page.keyboard.press('l');

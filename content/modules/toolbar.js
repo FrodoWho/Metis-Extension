@@ -1,12 +1,13 @@
 const toolbar = (() => {
   let container = null;
-  let btnMeasure, btnGuides, btnGrid, btnMockup, btnV, btnH, btnGap, btnPin, btnPx, btnRem, btnDiff, btnCollapse;
+  let btnMeasure, btnGuides, btnGrid, btnMockup, btnV, btnH, btnGap, btnPin, btnPx, btnRem, btnDiff, btnCollapse, btnAuto, noGrid;
   let rowMeasure, rowGuides, rowGrid, rowMockup, viewport, fileInput;
   const gridInputs = {};
+  let resizeTimer = null;
   const state = { measure: false, guides: false, grid: false, mockup: false, direction: 'v', gapVisible: false };
   // Remembered across pages
   const prefs = {
-    left: null, top: null, collapsed: false, units: 'px', pinGuides: false, grid: { ...grid.settings },
+    left: null, top: null, collapsed: false, units: 'px', pinGuides: false, gridAuto: true, grid: { ...grid.settings },
   };
 
   function getShortcut() {
@@ -49,8 +50,11 @@ const toolbar = (() => {
     input.addEventListener('input', () => {
       const v = Number(input.value);
       if (input.value === '' || !Number.isInteger(v) || v < min || v > max) return;
-      prefs.grid[key] = v;
-      grid.set({ [key]: v });
+      // Typing takes over from Auto, starting from what's drawn
+      prefs.grid = { ...grid.settings, [key]: v };
+      prefs.gridAuto = false;
+      setPressed(btnAuto, false);
+      grid.set(prefs.grid);
       persist();
     });
     gridInputs[key] = input;
@@ -135,6 +139,13 @@ const toolbar = (() => {
     rowGrid = el('div', 'msr-tb-row-sub msr-tb-hidden', container);
     rowGrid.id = 'msr-tb-row-grid';
 
+    btnAuto = button(rowGrid, 'Auto', "Use the page's own grid and content width",
+      () => setGridAuto(!prefs.gridAuto), { pressed: true });
+    btnAuto.id = 'msr-tb-grid-auto';
+    noGrid = el('span', 'msr-tb-note', rowGrid);
+    noGrid.textContent = 'No grid on this page';
+    noGrid.hidden = true;
+    el('div', 'msr-tb-sep', rowGrid);
     gridField(rowGrid, 'Cols',   'Number of columns', 'columns', 1, 48);
     gridField(rowGrid, 'Gutter', 'Space between columns (px)', 'gutter', 0, 500);
     gridField(rowGrid, 'Max',    'Maximum container width incl. margins (px), 0 = none', 'maxWidth', 0, 10000);
@@ -170,15 +181,20 @@ const toolbar = (() => {
     button(rowMockup, '✕', 'Remove image', () => mockup.clear(), { className: 'msr-tb-remove' });
 
     ui.root.appendChild(container);
-    window.addEventListener('resize', () => { clamp(); showViewport(); });
+    window.addEventListener('resize', () => {
+      clamp();
+      showViewport();
+      // Media queries can change the page's grid
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => { if (state.grid) applyGrid(); }, 150);
+    });
 
     ui.store.get('toolbar', prefs).then((saved) => {
       Object.assign(prefs, saved);
       setCollapsed(prefs.collapsed);
       setUnits(prefs.units);
       setPinned(prefs.pinGuides);
-      grid.set(prefs.grid);
-      for (const [key, input] of Object.entries(gridInputs)) input.value = prefs.grid[key];
+      applyGrid();
       if (prefs.left !== null) moveTo(prefs.left, prefs.top);
     });
   }
@@ -284,9 +300,31 @@ const toolbar = (() => {
   /** The grid is a visual layer, so it combines with either tool. */
   function setGrid(on) {
     state.grid = on;
-    if (on) grid.show();
+    if (on) { grid.show(); applyGrid(); }
     else    grid.hide();
     updateUI();
+  }
+
+  /** Auto draws the page's own grid; off draws the values you typed. */
+  function setGridAuto(on) {
+    prefs.gridAuto = on;
+    persist();
+    applyGrid();
+  }
+
+  /**
+   * The page's grid while Auto is on, else yours. Without a page grid Auto
+   * is unavailable (the preference stays for the next page).
+   */
+  function applyGrid() {
+    const found = state.grid && grid.detect();
+    const none  = state.grid && !found;
+    btnAuto.disabled = none;
+    btnAuto.title = none ? 'No grid found in this page\'s CSS' : "Use the page's own grid and content width";
+    setPressed(btnAuto, prefs.gridAuto && !none);
+    noGrid.hidden = !none;
+    grid.set(prefs.gridAuto && found ? found : prefs.grid);
+    for (const [key, input] of Object.entries(gridInputs)) input.value = grid.settings[key];
   }
 
   /** Visual layer too. Opens the file picker when there's no image yet. */

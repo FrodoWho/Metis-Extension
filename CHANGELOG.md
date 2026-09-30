@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### Grid
+- **Auto** (standaard aan): de grid leest de kolommen, gutter, max width en margin uit de CSS van de pagina, met de max-width van de container eromheen als content width.
+- Werkt met CSS grid (de grid die het vaakst terugkomt) en met flex- en float-grids zoals Bootstrap, Foundation en GOV.UK. Daar volgt het aantal kolommen uit de breedtes in de rijen: 2/3 + 1/3 en vier kwarten worden samen 12 kolommen.
+- Bij het resizen van het venster wordt opnieuw gekeken, dus breakpoints met een ander grid kloppen ook.
+- Typ je zelf een waarde, dan gaat Auto uit. Auto weer uitzetten brengt je eigen waarden terug.
+- Heeft de pagina geen grid, dan is Auto niet beschikbaar (doorgestreept) en staat er **No grid on this page**. Je ziet dan je eigen waarden. Op de volgende pagina met een grid staat Auto gewoon weer aan.
+
 ### Measure
 - **Clear**-knop in de Measure-rij: haalt alle gelockte metingen in één keer weg.
 - Gelockte metingen scrollen mee met de pagina. Het paneel blijft bij zijn element in plaats van aan de rand van het scherm te plakken.
